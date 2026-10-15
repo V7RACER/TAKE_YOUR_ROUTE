@@ -1,0 +1,3036 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="origin">
+  <title>TAKE YOUR ROUTE // TIMELINE VIEWER</title>
+  <!-- Web Fonts: Montserrat & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,900;1,900&family=Noto+Sans+JP:wght@600;800;900&display=swap" rel="stylesheet">
+  <!-- Leaflet & Exif.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <style>
+    :root {
+      --p-red: #e60012;
+      --p-dark-red: #8a000b;
+      --p-black: #0f0f0f;
+      --p-panel: #181818;
+      --p-white: #ffffff;
+      --p-yellow: #ffe600;
+      --p-cyan: #00e5ff;
+      --p-green: #00ff88;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Montserrat", "Noto Sans JP", "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      letter-spacing: 0.03em;
+      line-height: 1.45;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      color: var(--p-white);
+      background-color: var(--p-black);
+    }
+
+    /* Sidebar Layout */
+    #sidebar {
+      width: clamp(360px, 35vw, 490px);
+      max-width: 100vw;
+      height: 100vh;
+      background-color: var(--p-black);
+      background-image: 
+        radial-gradient(var(--p-dark-red) 15%, transparent 16%),
+        repeating-linear-gradient(-45deg, rgba(230,0,18,0.06) 0px, rgba(230,0,18,0.06) 14px, transparent 14px, transparent 28px);
+      background-size: 18px 18px, 100% 100%;
+      display: flex;
+      flex-direction: column;
+      border-right: 5px solid var(--p-red);
+      box-shadow: 10px 0 28px rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    /* Header */
+    #sidebar-header {
+      padding: 12px 16px;
+      background: var(--p-red);
+      color: var(--p-white);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      border-bottom: 4px solid var(--p-white);
+      position: relative;
+      overflow: hidden;
+    }
+    #sidebar-header::after {
+      content: "TIMELINE";
+      position: absolute;
+      right: -5px;
+      bottom: -12px;
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: rgba(0,0,0,0.16);
+      transform: rotate(-5deg);
+      pointer-events: none;
+      letter-spacing: 0.08em;
+    }
+    .header-title-wrap {
+      transform: skewX(-8deg);
+      background: var(--p-black);
+      padding: 5px 14px 5px 8px;
+      border: 2.5px solid var(--p-white);
+      box-shadow: 4px 4px 0 var(--p-yellow);
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .emblem-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--p-red);
+      color: var(--p-yellow);
+      border: 2px solid var(--p-white);
+      padding: 2px 7px;
+      font-size: 0.85rem;
+      font-weight: 900;
+      letter-spacing: 0;
+      box-shadow: 2px 2px 0 var(--p-yellow);
+    }
+    #sidebar-header h2 {
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--p-white);
+      white-space: nowrap;
+    }
+
+    #toggle-btn {
+      display: none;
+      background: var(--p-black);
+      color: var(--p-yellow);
+      border: 2px solid var(--p-white);
+      padding: 5px 12px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transform: skewX(-8deg);
+      z-index: 2;
+    }
+
+    /* Navigation Tabs */
+    .tabs-deck {
+      background: var(--p-black);
+      padding: 10px 14px 8px;
+      border-bottom: 3px solid var(--p-red);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .tabs-row-top {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+    .tabs-row-bottom {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr) 34px;
+      gap: 6px;
+      width: 100%;
+    }
+    .tab-btn, .tab-arrow {
+      width: 100%;
+      min-width: 0;
+      padding: 6px 4px;
+      border: 2px solid var(--p-white);
+      background: var(--p-panel);
+      color: var(--p-white);
+      font-size: 0.74rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transform: skewX(-6deg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      transition: all 0.14s ease;
+      box-shadow: 2px 2px 0 var(--p-red);
+    }
+    .tab-arrow {
+      color: var(--p-yellow);
+      padding: 6px 0;
+      font-weight: 900;
+    }
+    .tab-btn:hover, .tab-arrow:hover {
+      background: var(--p-yellow);
+      color: var(--p-black);
+      border-color: var(--p-black);
+      transform: skewX(-6deg) translateY(-1px);
+      box-shadow: 3px 3px 0 var(--p-white);
+    }
+    .tab-btn.active {
+      background: var(--p-red);
+      color: var(--p-white);
+      border-color: var(--p-yellow);
+      transform: skewX(-6deg) translateY(-1px);
+      box-shadow: 3px 3px 0 var(--p-yellow);
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: slideIn 0.18s ease-out;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--p-black); }
+    ::-webkit-scrollbar-thumb { background: var(--p-red); border: 1px solid var(--p-white); }
+
+    #map { flex: 1; height: 100vh; position: relative; background: #0a0a0a; }
+    
+    .phantom-map-filter .leaflet-tile-pane {
+      filter: invert(100%) hue-rotate(180deg) contrast(130%) saturate(85%) brightness(90%);
+    }
+
+    #mobile-open-btn {
+      display: none;
+      position: absolute;
+      top: 12px;
+      left: 50px;
+      z-index: 999;
+      background: var(--p-red);
+      color: var(--p-white);
+      border: 2.5px solid var(--p-white);
+      padding: 8px 16px;
+      font-weight: 800;
+      transform: skewX(-8deg);
+      box-shadow: 4px 4px 0 var(--p-black);
+      cursor: pointer;
+    }
+
+    /* Content Boxes */
+    .box {
+      background: rgba(22, 22, 22, 0.95);
+      padding: 14px;
+      margin-bottom: 16px;
+      border: 2.5px solid var(--p-white);
+      box-shadow: 5px 5px 0 var(--p-red);
+      position: relative;
+      transition: box-shadow 0.15s ease;
+    }
+    .box:hover { box-shadow: 6px 6px 0 var(--p-yellow); }
+    
+    .section-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 900;
+      color: var(--p-black);
+      background: var(--p-white);
+      padding: 4px 12px;
+      display: inline-block;
+      transform: skewX(-8deg);
+      border: 2px solid var(--p-black);
+      box-shadow: 3px 3px 0 var(--p-red);
+      letter-spacing: 0.06em;
+      max-width: 85%;
+    }
+    label {
+      font-weight: 800;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      color: var(--p-yellow);
+      letter-spacing: 0.05em;
+    }
+    .help-mark {
+      font-size: 0.7rem;
+      background: #262626;
+      color: var(--p-yellow);
+      padding: 1px 7px;
+      border: 1.5px solid var(--p-yellow);
+      font-weight: 900;
+      cursor: help;
+      transform: skewX(-8deg);
+      transition: all 0.12s;
+      display: inline-block;
+      line-height: 1.3;
+    }
+    .help-mark:hover {
+      background: var(--p-yellow);
+      color: var(--p-black);
+      transform: skewX(-8deg) scale(1.1);
+    }
+
+    select, input[type="file"], input[type="text"], input[type="date"], input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      border: 2px solid var(--p-white);
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: inherit;
+      letter-spacing: 0.03em;
+      background: var(--p-black);
+      color: var(--p-white);
+      box-shadow: 3px 3px 0 var(--p-red);
+      border-radius: 0;
+      text-align: left;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--p-yellow);
+      box-shadow: 4px 4px 0 var(--p-yellow);
+    }
+
+    .inline-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .inline-row > * { margin-bottom: 0 !important; min-width: 0; }
+
+    /* Filter Checkboxes */
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      font-weight: 700;
+      font-size: 0.74rem;
+      margin-bottom: 2px;
+      cursor: pointer;
+      line-height: 1.3;
+      color: var(--p-white);
+      padding: 6px 8px;
+      background: #121212;
+      border: 1px solid #2e2e2e;
+      transition: all 0.12s;
+      min-width: 0;
+      text-align: left;
+    }
+    .checkbox-label span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .checkbox-label:hover {
+      background: rgba(230, 0, 18, 0.28);
+      border-color: var(--p-yellow);
+      color: var(--p-yellow);
+    }
+    .checkbox-label input {
+      width: 15px;
+      height: 15px;
+      margin-right: 7px;
+      accent-color: var(--p-red);
+      flex-shrink: 0;
+    }
+
+    /* Legends */
+    .pin-legend {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: #121212;
+      border: 1.5px solid #444;
+      padding: 7px 8px;
+      margin-top: 10px;
+      font-size: 0.73rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: help;
+    }
+    .pin-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1.5px solid #000;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .heat-legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.73rem;
+      font-weight: 800;
+      background: var(--p-black);
+      border: 2px solid var(--p-white);
+      padding: 6px 12px;
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    .heat-grad {
+      flex: 1;
+      height: 10px;
+      border: 1px solid var(--p-white);
+      background: linear-gradient(90deg, #00e5ff, #00ff88, #ffe600, #ff4500, #e60012);
+    }
+
+    /* Yearly Log Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 0.8rem;
+      table-layout: fixed;
+    }
+    th, td {
+      border-bottom: 1px solid #2e2e2e;
+      padding: 8px 6px;
+      text-align: center;
+      white-space: nowrap;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      background: var(--p-red);
+      color: var(--p-white);
+      border: 1px solid var(--p-white);
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+    .year-row {
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .year-row:hover td {
+      background: rgba(230, 0, 18, 0.35);
+      color: var(--p-yellow);
+    }
+    .year-row.active-year td {
+      background: rgba(255, 230, 0, 0.18);
+      border-top: 1px solid var(--p-yellow);
+      border-bottom: 1px solid var(--p-yellow);
+    }
+    td:first-child { color: var(--p-yellow); font-weight: 900; }
+
+    .total-dist-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      background: #121212;
+      border: 1px solid #333;
+      padding: 10px 14px;
+      margin-bottom: 4px;
+    }
+    .stat-highlight {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: var(--p-yellow);
+      text-shadow: 3px 3px 0 var(--p-red);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .note { font-size: 0.72rem; color: #b0b8c4; margin-top: 4px; line-height: 1.45; font-weight: 600; text-align: left; }
+
+    /* 47 Prefectures Grid & Board */
+    #pref-detail-board {
+      background: var(--p-black);
+      border: 2px solid var(--p-white);
+      box-shadow: 4px 4px 0 var(--p-red);
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+    .pref-board-header {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--p-yellow);
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      white-space: nowrap;
+    }
+    .pref-stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .pref-stat-cell {
+      background: #161616;
+      border: 1px solid #383838;
+      padding: 6px 4px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .pref-stat-label {
+      font-size: 0.66rem;
+      color: #aaa;
+      display: block;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .pref-stat-num {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: var(--p-white);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; margin-top: 12px; }
+    .pref-badge {
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: #1a1a1a;
+      color: #666;
+      border: 2px solid #333;
+      cursor: pointer;
+      white-space: nowrap;
+      transform: skewX(-6deg);
+      transition: all 0.12s ease;
+    }
+    .pref-badge:hover {
+      transform: skewX(-6deg) scale(1.08);
+      border-color: var(--p-yellow);
+      z-index: 5;
+    }
+    .pref-badge.passed { background: #332b00; color: var(--p-yellow); border-color: var(--p-yellow); }
+    .pref-badge.visited { background: #4d0006; color: #ff99a2; border-color: var(--p-red); box-shadow: 2px 2px 0 var(--p-red); }
+    .pref-badge.stayed { background: var(--p-red); color: var(--p-white); border-color: var(--p-white); box-shadow: 3px 3px 0 var(--p-yellow); }
+    .pref-badge.selected-pref {
+      outline: 3px solid var(--p-cyan);
+      box-shadow: 0 0 12px var(--p-cyan);
+      transform: skewX(-6deg) scale(1.08);
+      z-index: 6;
+    }
+
+    /* Ranking Lists */
+    .rank-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      background: #141414;
+      border-left: 5px solid var(--p-red);
+      border-bottom: 1px solid #2e2e2e;
+      font-size: 0.78rem;
+      gap: 8px;
+      transition: all 0.12s;
+    }
+    .rank-item:hover {
+      background: var(--p-red);
+      color: var(--p-white);
+      border-left-color: var(--p-yellow);
+      transform: translateX(3px);
+    }
+    .rank-main {
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .rank-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 700;
+      text-align: left;
+    }
+    .rank-val {
+      font-weight: 800;
+      color: var(--p-yellow);
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .rank-badge {
+      background: var(--p-white);
+      color: var(--p-black);
+      padding: 1px 6px;
+      font-size: 0.7rem;
+      font-weight: 900;
+      margin-right: 6px;
+      display: inline-block;
+      transform: skewX(-8deg);
+      box-shadow: 2px 2px 0 var(--p-red);
+    }
+    .btn-icon {
+      background: var(--p-black);
+      color: #fff;
+      border: 1.5px solid #666;
+      padding: 4px 7px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transform: skewX(-6deg);
+      transition: all 0.1s;
+    }
+    .btn-icon:hover { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); transform: skewX(-6deg) scale(1.08); }
+
+    /* Trophies / Awards Grid */
+    .trophy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .trophy-card {
+      padding: 9px 10px;
+      border: 2px solid #3d3d3d;
+      background: #121212;
+      color: #777;
+      filter: grayscale(100%);
+      opacity: 0.6;
+      transition: all 0.18s;
+      cursor: help;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .trophy-card.unlocked {
+      background: var(--p-black);
+      border: 2px solid var(--p-white);
+      color: var(--p-white);
+      filter: grayscale(0%);
+      opacity: 1;
+      box-shadow: 3px 3px 0 var(--p-red);
+    }
+    .trophy-card.unlocked:hover {
+      transform: translateY(-2px);
+      box-shadow: 4px 4px 0 var(--p-yellow);
+    }
+    .trophy-title {
+      font-family: "Montserrat", "Noto Sans JP", sans-serif;
+      font-weight: 900;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      letter-spacing: 0.02em;
+      margin-bottom: 6px;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      text-align: left;
+    }
+    .trophy-card.unlocked .trophy-title { color: var(--p-yellow); }
+    .trophy-prog-bg {
+      width: 100%;
+      height: 5px;
+      background: #262626;
+      border: 1px solid #555;
+      overflow: hidden;
+    }
+    .trophy-prog-fill { height: 100%; background: #555; }
+    .trophy-card.unlocked .trophy-prog-fill { background: linear-gradient(90deg, var(--p-red), var(--p-yellow)); }
+    .trophy-stat {
+      font-family: Consolas, Monaco, "Montserrat", monospace, sans-serif;
+      font-size: 0.61rem;
+      letter-spacing: -0.02em;
+      margin-top: 4px;
+      font-weight: 700;
+      color: #ccc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .trophy-pct {
+      color: var(--p-yellow);
+      font-weight: 800;
+      margin-left: 4px;
+    }
+
+    /* Action Buttons */
+    .btn {
+      background: var(--p-red);
+      color: var(--p-white);
+      border: 2px solid var(--p-white);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      width: 100%;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      transform: skewX(-6deg);
+      box-shadow: 4px 4px 0 var(--p-white);
+      text-transform: uppercase;
+      transition: all 0.12s;
+    }
+    .btn:hover {
+      background: var(--p-yellow);
+      color: var(--p-black);
+      border-color: var(--p-black);
+      box-shadow: 5px 5px 0 var(--p-red);
+      transform: skewX(-6deg) translateY(-2px);
+    }
+    .btn-guide {
+      background: var(--p-yellow);
+      color: var(--p-black);
+      border: 2px solid var(--p-white);
+      box-shadow: 4px 4px 0 var(--p-red);
+      margin-bottom: 10px;
+      font-size: 0.75rem;
+    }
+    .btn-guide:hover {
+      background: var(--p-white);
+      color: var(--p-red);
+      box-shadow: 5px 5px 0 var(--p-yellow);
+    }
+    .btn-stop { background: var(--p-black); color: var(--p-yellow); border-color: var(--p-yellow); }
+    .btn-sub { background: #262626; font-size: 0.74rem; padding: 6px 10px; box-shadow: 3px 3px 0 var(--p-red); }
+
+    /* Guide Modal */
+    #guide-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background: var(--p-panel);
+      border: 3px solid var(--p-white);
+      box-shadow: 10px 10px 0 var(--p-red);
+      max-width: 540px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+      position: relative;
+    }
+    .modal-step-box {
+      background: #111;
+      border-left: 4px solid var(--p-yellow);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 0.78rem;
+      line-height: 1.55;
+    }
+    .modal-step-box strong { color: var(--p-yellow); }
+
+    /* Map Markers & Badges */
+    .emoji-marker { font-size: 18px; text-align: center; line-height: 24px; background: var(--p-black); border-radius: 50%; border: 2px solid var(--p-yellow); box-shadow: 3px 3px 0 var(--p-red); }
+    .crown-marker { font-size: 21px; text-align: center; line-height: 26px; background: var(--p-red); border-radius: 50%; border: 2px solid var(--p-white); box-shadow: 3px 3px 0 var(--p-black); }
+    .bike-marker { font-size: 28px; text-align: center; line-height: 30px; filter: drop-shadow(3px 3px 0 var(--p-red)); }
+    .photo-marker { border: 3px solid var(--p-white); box-shadow: 4px 4px 0 var(--p-red); object-fit: cover; transform: rotate(-3deg); }
+    
+    .flag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--p-white);
+      white-space: nowrap;
+      border: 2px solid var(--p-white);
+      transform: translate(-50%, -100%) skewX(-10deg);
+      box-shadow: 4px 4px 0 var(--p-black);
+      letter-spacing: 0.05em;
+    }
+    .flag-start { background: var(--p-red); color: var(--p-yellow); }
+    .flag-goal { background: var(--p-black); color: var(--p-white); border-color: var(--p-yellow); box-shadow: 4px 4px 0 var(--p-red); }
+    .flag-midnight { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); font-size: 0.7rem; padding: 2px 8px; }
+
+    /* Leaflet Popups */
+    .leaflet-popup-content-wrapper {
+      background: var(--p-black) !important;
+      color: var(--p-white) !important;
+      border: 2.5px solid var(--p-white) !important;
+      border-radius: 0 !important;
+      box-shadow: 7px 7px 0 var(--p-red) !important;
+    }
+    .leaflet-popup-tip { background: var(--p-red) !important; }
+    .popup-content { font-size: 0.78rem; line-height: 1.45; width: 255px; color: var(--p-white); text-align: left; }
+    .popup-title { font-weight: 800; color: var(--p-black); background: var(--p-yellow); padding: 3px 8px; margin-bottom: 6px; display: inline-block; }
+    .visit-list { max-height: 110px; overflow-y: auto; background: #1a1a1a; padding: 5px; border: 1px solid #444; margin: 5px 0; font-size: 0.73rem; }
+    .visit-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 2px; border-bottom: 1px dashed #333; gap: 4px; }
+    .btn-route-jump { background: var(--p-red); color: var(--p-white); border: 1px solid var(--p-white); padding: 2px 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .btn-route-jump:hover { background: var(--p-yellow); color: var(--p-black); }
+    .gmap-link { display: block; text-align: center; background: var(--p-white); color: var(--p-black) !important; text-decoration: none; padding: 6px; font-size: 0.76rem; margin-top: 6px; font-weight: 800; box-shadow: 3px 3px 0 var(--p-red); }
+    .gmap-link:hover { background: var(--p-yellow); }
+
+    /* Floating Map Banner */
+    #floating-banner {
+      display: none;
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%) skewX(-6deg);
+      z-index: 998;
+      background: var(--p-black);
+      color: var(--p-white);
+      border: 2.5px solid var(--p-white);
+      padding: 10px 18px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      box-shadow: 7px 7px 0 var(--p-red);
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      max-width: 92%;
+    }
+    .banner-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    .banner-btn {
+      background: var(--p-red);
+      color: var(--p-white);
+      border: 2px solid var(--p-white);
+      padding: 4px 10px;
+      font-weight: 800;
+      font-size: 0.74rem;
+      cursor: pointer;
+    }
+    .banner-btn:hover { background: var(--p-yellow); color: var(--p-black); }
+    .banner-btn.play { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); }
+    .banner-btn.play:hover { background: var(--p-white); }
+    #banner-day-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      font-size: 0.72rem;
+    }
+    .day-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #222;
+      border: 1px solid var(--p-white);
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .day-dot { width: 10px; height: 10px; display: inline-block; border: 1px solid #fff; }
+
+    /* Custom Tooltip */
+    #custom-tooltip {
+      position: fixed;
+      display: none;
+      z-index: 9999;
+      background: rgba(12, 12, 12, 0.96);
+      color: var(--p-white);
+      border: 2px solid var(--p-yellow);
+      box-shadow: 5px 5px 0 var(--p-red);
+      padding: 9px 13px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      max-width: 310px;
+      line-height: 1.5;
+      pointer-events: none;
+      text-align: left;
+    }
+    #custom-tooltip .tt-title {
+      color: var(--p-yellow);
+      font-weight: 900;
+      border-bottom: 1px solid #444;
+      padding-bottom: 3px;
+      margin-bottom: 6px;
+      font-size: 0.77rem;
+    }
+    #custom-tooltip .tt-cond {
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 800;
+      margin-bottom: 5px;
+      line-height: 1.35;
+    }
+    #custom-tooltip .tt-flavor {
+      color: #8c8c8c;
+      font-weight: 600;
+      font-size: 0.68rem;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 768px) {
+      #sidebar { position: absolute; top: 0; left: 0; width: 92vw; height: 100vh; }
+      #sidebar.closed { display: none; }
+      #toggle-btn { display: block; }
+      #mobile-open-btn { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <button id="mobile-open-btn" onclick="toggleSidebar(true)">☰ MENU</button>
+
+  <div id="custom-tooltip"></div>
+
+  <!-- Export Guide Modal (iOS & Android) -->
+  <div id="guide-modal" onclick="if(event.target===this) toggleGuideModal(false)">
+    <div class="modal-card">
+      <div class="section-header-row">
+        <div class="section-title">📖 HOW TO EXPORT TIMELINE DATA</div>
+        <button type="button" class="btn-icon" onclick="toggleGuideModal(false)">✕</button>
+      </div>
+      <p style="font-size:0.78rem; color:#ccc; margin-top:0;">
+        本ツールは <strong>Android / iOS（iPhone）の両形式に対応</strong> しています。お使いのスマートフォンの手順に従ってJSONファイルを出力してください。
+      </p>
+
+      <div class="modal-step-box">
+        <strong>🤖 Android の場合（設定アプリ / Googleマップから出力）</strong><br>
+        1. 端末の「設定」アプリ ➔「位置情報」➔「位置情報サービス」➔「タイムライン」を開きます（またはGoogleマップ右上のアイコン ➔「タイムライン」➔ 右上の「…」➔「位置情報とプライバシーの設定」）。<br>
+        2. <strong>「タイムライン データをエクスポート」</strong>をタップし、保存された <code>タイムライン.json</code> を選択してください。
+      </div>
+
+      <div class="modal-step-box">
+        <strong>🍎 iOS (iPhone / iPad) の場合（Googleマップから出力）</strong><br>
+        1. Googleマップアプリを開き、右上のプロフィールアイコン ➔「タイムライン」をタップします。<br>
+        2. 右上の「…（メニュー）」➔「位置情報とプライバシーの設定」を開きます。<br>
+        3. 下部にある<strong>「タイムライン データをエクスポート」</strong>をタップし、「ファイルに保存」で保存したJSONファイルを選択してください。
+      </div>
+
+      <div style="font-size:0.72rem; color:var(--p-cyan); background:#111; padding:8px 10px; border:1px solid #333; margin-bottom:12px;">
+        🔒 <strong>PRIVACY POLICY:</strong> 読み込んだJSONデータや写真はお使いのブラウザ内（ローカルメモリ）でのみ処理され、外部サーバーへ送信・保存されることは一切ありません。
+      </div>
+
+      <button type="button" class="btn" style="margin-bottom:0;" onclick="toggleGuideModal(false)">CLOSE GUIDE</button>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <div class="header-title-wrap">
+        <span class="emblem-badge">🏁</span>
+        <h2>TAKE YOUR ROUTE</h2>
+      </div>
+      <button id="toggle-btn" onclick="toggleSidebar(false)">× MAP</button>
+    </div>
+
+    <!-- Navigation Deck -->
+    <div class="tabs-deck">
+      <div class="tabs-row-top">
+        <button type="button" class="tab-btn active" data-tab="tab-main" onclick="switchTab('tab-main', this)">📊 CONFIG</button>
+        <button type="button" class="tab-btn" data-tab="tab-pref" onclick="switchTab('tab-pref', this)">🗾 TARGETS</button>
+        <button type="button" class="tab-btn" data-tab="tab-rank" onclick="switchTab('tab-rank', this)">🏆 RECORDS</button>
+      </div>
+      <div class="tabs-row-bottom">
+        <button type="button" class="tab-arrow" onclick="cycleTab(-1)">◀</button>
+        <button type="button" class="tab-btn" data-tab="tab-play" onclick="switchTab('tab-play', this)">▶️ REPLAY</button>
+        <button type="button" class="tab-btn" data-tab="tab-memo" onclick="switchTab('tab-memo', this)">📝 LOGBOOK</button>
+        <button type="button" class="tab-arrow" onclick="cycleTab(1)">▶</button>
+      </div>
+    </div>
+
+    <!-- Tab 1: CONFIG -->
+    <div id="tab-main" class="tab-content active">
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">📂 DATA SOURCE</div>
+        </div>
+        <button type="button" class="btn btn-guide" onclick="toggleGuideModal(true)">📖 HOW TO EXPORT TIMELINE.JSON (iOS / Android)</button>
+        <label>TIMELINE.JSON <span class="help-mark" data-tip-title="TIMELINE JSON FILE" data-tip="AndroidおよびiOS（iPhone）からエクスポートしたタイムラインJSONファイルに対応しています。すべてのデータはブラウザ内のみで安全に処理されます。">?</span></label>
+        <input type="file" id="fileInput" accept=".json,application/json">
+        
+        <label>TARGET PERIOD <span class="help-mark" data-tip-title="TARGET PERIOD" data-tip="地図上に表示・集計する対象の年を選択します。下部のYEARLY LOGの年をクリックしても切り替えられます。">?</span></label>
+        <select id="yearFilter" disabled>
+          <option value="recent10">LAST 10 YEARS (2017 - 2026)</option>
+          <option value="all">ALL TIME</option>
+        </select>
+
+        <label>DATE RANGE <span class="help-mark" data-tip-title="DATE RANGE" data-tip="特定の日付や連休期間（開始日〜終了日）をピンポイントで指定してルートを抽出します。">?</span></label>
+        <div class="inline-row">
+          <input type="date" id="dateStart" style="flex:1;"><span>-</span><input type="date" id="dateEnd" style="flex:1;">
+          <button type="button" class="btn btn-sub" style="width:auto; padding:7px 12px;" onclick="clearDateFilter()">CLR</button>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🎨 VISUAL &amp; ENGINE</div>
+        </div>
+        <label class="checkbox-label" style="background:rgba(230,0,18,0.22); border:1px solid var(--p-red); padding:7px 8px; margin-bottom:10px; justify-content:space-between;">
+          <span style="display:flex; align-items:center;"><input type="checkbox" id="phantomMapFilter" checked onchange="toggleMapTheme()"> 🃏 <strong>PHANTOM DARK MAP</strong></span>
+          <span class="help-mark" data-tip-title="PHANTOM DARK MAP" data-tip="背景の地図タイルをダークモード（黒×赤基調）に反転させ、走行ルートのネオンカラーを際立たせます。">?</span>
+        </label>
+
+        <label>ROUTE STYLE <span class="help-mark" data-tip-title="ROUTE STYLE" data-tip="【HEATMAP】走行頻度別に色分け（水色:レア ➔ 赤:常連）<br>【DAY BY DAY】日付ごとに異なる色で表示<br>【CRIMSON LINE】全体をクリムゾンレッドで高速描画<br>【TIME ZONE】昼（黄）・夜（水色）・深夜（赤）で色分け">?</span></label>
+        <select id="routeStyle">
+          <option value="heatmap" selected>🔥 HEATMAP (RARE:CYAN ➔ HOT:RED)</option>
+          <option value="daily_color">🌈 DAY BY DAY (MULTI-COLOR)</option>
+          <option value="standard">🃏 CRIMSON LINE</option>
+          <option value="night">🌙 TIME ZONE (DAY / EVE / NIGHT)</option>
+        </select>
+        <div class="heat-legend" id="heatLegend">
+          <span>RARE</span><div class="heat-grad"></div><span>HOT</span>
+        </div>
+
+        <label>ODOMETER FACTOR <span class="help-mark" data-tip-title="ODOMETER FACTOR" data-tip="座標間の直線距離に対し、実際の道路のカーブや迂回分を補正する倍率を指定します（一般的な実走メーター目安: 1.10〜1.20）。">?</span></label>
+        <div class="inline-row">
+          <span style="font-size:0.78rem; font-weight:800; white-space:nowrap;">RAW DIST ×</span>
+          <input type="number" id="roadFactor" value="1.15" step="0.01" min="0.5" max="3.0" style="font-weight:800; text-align:center; color:var(--p-yellow); max-width:140px;">
+        </div>
+
+        <label>GAP BRIDGE &amp; NOISE CUT <span class="help-mark" data-tip-title="GAP BRIDGE &amp; NOISE CUT" data-tip="【左：ルート補完モード】<br>・SOLID BRIDGE: トンネルや休憩前後の途切れを実線で結合し距離を加算します。<br>・DASHED BRIDGE: 補完した区間を判別しやすい点線で表示します。<br>・NO BRIDGE: 補完を行いません。<br><br>【右：GPSバグ除去＆結合上限】<br>・BALANCED: 時速200km以下・最大150kmまでの途切れを結合し、異常なワープを除去します（推奨）。<br>・LOOSE: 時速250km以下・最大300kmの大きな途切れまで結合します。<br>・STRICT: 30km以上の途切れは結合せず厳密に判定します。<br>・RAW DATA: 速度制限なしで結合します。">?</span></label>
+        <div class="inline-row">
+          <select id="bridgeMode" style="flex:1;">
+            <option value="bridge_solid" selected>⚡ SOLID BRIDGE</option>
+            <option value="bridge_dashed">🔸 DASHED BRIDGE</option>
+            <option value="off">NO BRIDGE</option>
+          </select>
+          <select id="noiseFilter" style="flex:1;">
+            <option value="balanced" selected>🏍️ BALANCED (200km/h)</option>
+            <option value="loose">🛣️ LOOSE (250km/h)</option>
+            <option value="ultra">🛡️ STRICT (30km GAP)</option>
+            <option value="raw">RAW DATA</option>
+          </select>
+        </div>
+
+        <label>SESSION GROUPING <span class="help-mark" data-tip-title="SESSION GROUPING" data-tip="1回（1日）の走行距離を計算する際の区切り方を設定します。<br>・CONTINUOUS RUN: 休憩が3時間以内であれば、深夜0時を跨いでも1回の連続ツーリングとして距離を合算します。<br>・04:00 AM CUTOFF: 午前4時を1日の区切りとし、深夜0時〜4時までの走行を前日分に合算します。<br>・00:00 MIDNIGHT: カレンダー通り深夜0時00分で区切ります。">?</span></label>
+        <select id="dayGroupingMode">
+          <option value="session" selected>🏍️ CONTINUOUS RUN (GAP &lt; 3H)</option>
+          <option value="4am">🌅 04:00 AM CUTOFF</option>
+          <option value="midnight">📅 00:00 MIDNIGHT CUTOFF</option>
+        </select>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🚫 MAP FILTERS &amp; PINS</div>
+          <span class="help-mark" data-tip-title="MAP FILTERS &amp; PINS" data-tip="地図上に表示するルートやピンの表示フィルター設定です。各チェック項目にカーソルを合わせると個別の詳細が表示されます。">?</span>
+        </div>
+        <div class="checkbox-grid">
+          <label class="checkbox-label" data-tip-title="OCEAN / FERRY CUT" data-tip="フェリー航路や海峡を跨ぐ海上の直線ワープを除外し、純粋な陸上走行ルートと距離のみを表示します。"><input type="checkbox" id="excludeFerry" checked> <span>⛴️ OCEAN / FERRY CUT</span></label>
+          <label class="checkbox-label" data-tip-title="JAPAN ONLY" data-tip="海外の位置情報データおよび海外への誤判定ノイズを除外します。"><input type="checkbox" id="excludeOverseas" checked> <span>🇯🇵 JAPAN ONLY</span></label>
+          <label class="checkbox-label" data-tip-title="OKINAWA CUT" data-tip="地図上から沖縄県および遠方離島のデータを除外します。"><input type="checkbox" id="excludeOkinawa" checked> <span>🌺 OKINAWA CUT</span></label>
+          <label class="checkbox-label" data-tip-title="HIDE TOKYO / HOME" data-tip="日常の移動が多い東京23区内および自宅周辺（半径15km圏内）の立ち寄りピンを非表示にします。"><input type="checkbox" id="hideTokyoHome" checked> <span>🏙️ HIDE TOKYO/HOME</span></label>
+          <label class="checkbox-label" data-tip-title="SHOW VISIT PINS" data-tip="立ち寄りスポット（滞在先・宿泊先）のピンを地図上に表示します。"><input type="checkbox" id="showVisits" checked> <span>📍 SHOW VISIT PINS</span></label>
+          <label class="checkbox-label" data-tip-title="HIDE HOME PIN" data-tip="自宅拠点（HOME）のピンを非表示にします。"><input type="checkbox" id="hideHome" checked> <span>🏠 HIDE HOME PIN</span></label>
+          <label class="checkbox-label" data-tip-title="EXTREME CROWNS" data-tip="到達した東西南北の極点に王冠マーカー（👑）を表示します。"><input type="checkbox" id="showExtreme" checked> <span>👑 EXTREME CROWNS</span></label>
+          <label class="checkbox-label" data-tip-title="DISTANCE RADAR" data-tip="自宅を中心とした同心円レーダー（半径100km / 300km / 500km / 1000km）を表示します。"><input type="checkbox" id="showRadar"> <span>🎯 DISTANCE RADAR</span></label>
+        </div>
+        <div class="pin-legend" data-tip-title="PIN COLOR LEGEND" data-tip="赤色は宿泊を伴う滞在先（STAY）、黄色は日帰りの立ち寄り先（VISIT）、緑色は自宅拠点（HOME）を表します。">
+          <span><span class="pin-dot" style="background:var(--p-red);"></span>STAY (宿泊)</span>
+          <span><span class="pin-dot" style="background:var(--p-yellow);"></span>VISIT (立寄)</span>
+          <span><span class="pin-dot" style="background:var(--p-green);"></span>HOME (自宅)</span>
+        </div>
+      </div>
+
+      <div id="stats">
+        <p class="note">SELECT TIMELINE.JSON TO START</p>
+      </div>
+    </div>
+
+    <!-- Tab 2: 47 PREFECTURES -->
+    <div id="tab-pref" class="tab-content">
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🗾 47 PREFECTURES</div>
+          <span class="help-mark" data-tip-title="47 PREFECTURES" data-tip="全47都道府県の踏破状況です。各都道府県をクリックすると、地図がその県にズームし、その県内の立ち寄りピンのみを抽出して表示します。">?</span>
+        </div>
+        <div class="total-dist-wrap">
+          <span style="font-size:0.78rem; font-weight:800; color:#ccc;">CLEARED TARGETS</span>
+          <span id="pref-summary" class="stat-highlight">0 / 47</span>
+        </div>
+        <div class="note" style="margin: 8px 0;">
+          <span style="display:inline-block; width:10px; height:10px; background:var(--p-red); border:1px solid #fff;"></span> STAY 
+          <span style="display:inline-block; width:10px; height:10px; background:#4d0006; border:1px solid var(--p-red);"></span> VISIT 
+          <span style="display:inline-block; width:10px; height:10px; background:#332b00; border:1px solid var(--p-yellow);"></span> PASS
+        </div>
+        <div id="pref-detail-board">
+          <div class="pref-board-header">
+            <span id="pref-board-name">🗾 SELECT TARGET</span>
+            <span id="pref-board-status" style="font-size:0.72rem; color:#aaa;">CLICK TO FILTER PINS</span>
+          </div>
+          <div class="pref-stats-row">
+            <div class="pref-stat-cell">
+              <span class="pref-stat-label">🏨 STAY</span>
+              <span class="pref-stat-num" id="pref-board-stay">-</span>
+            </div>
+            <div class="pref-stat-cell">
+              <span class="pref-stat-label">📍 VISIT</span>
+              <span class="pref-stat-num" id="pref-board-visit">-</span>
+            </div>
+            <div class="pref-stat-cell">
+              <span class="pref-stat-label">💨 PASS</span>
+              <span class="pref-stat-num" id="pref-board-pass">-</span>
+            </div>
+          </div>
+          <button type="button" id="clearPrefFilterBtn" class="btn btn-sub" style="display:none; margin-top:8px; margin-bottom:0; background:var(--p-red); color:#fff;" onclick="clearPrefFilter()">× CLEAR PREF FILTER (SHOW ALL PINS)</button>
+        </div>
+        <div id="pref-list" class="pref-grid"></div>
+      </div>
+    </div>
+
+    <!-- Tab 3: RECORDS & AWARDS -->
+    <div id="tab-rank" class="tab-content">
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">⚙️ RECORDS SCOPE</div>
+        </div>
+        <label>FARTHEST / EXTREME AREA FILTER <span class="help-mark" data-tip-title="RECORDS AREA FILTER" data-tip="最遠到達ランキングおよび東西南北極点の対象エリアを選択します。<br>・4 MAIN ISLANDS: 本州・北海道・四国・九州の4島のみを対象とし、航空機移動になりやすい沖縄・離島・海外を除外します。<br>・ALL JAPAN: 沖縄や離島を含む日本全域を対象にします。<br>・WORLDWIDE: 海外を含む全データを対象にします。">?</span></label>
+        <select id="recordScope">
+          <option value="mainland" selected>🏍️ 4 MAIN ISLANDS</option>
+          <option value="japan_all">🗾 ALL JAPAN</option>
+          <option value="world">🌍 WORLDWIDE</option>
+        </select>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🎮 AWARDS</div>
+          <span class="help-mark" data-tip-title="AWARDS // 実績システム" data-tip="走った距離、越えた夜、立ち寄った街、そして辿り着いた最果ての岬。あなたの旅の軌跡が『称号』として刻まれます。さあ、次はまだ見ぬどの記録を塗り替えますか？">?</span>
+        </div>
+        <div id="trophySummary" style="font-weight:800; color:var(--p-yellow); font-size:0.82rem; margin-bottom:6px;"></div>
+        <div id="trophyList" class="trophy-grid"></div>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🏆 LONGEST RUN TOP 10</div>
+          <span class="help-mark" data-tip-title="LONGEST RUN TOP 10" data-tip="1回（1日）の連続走行距離が長い順のランキングTOP10です。項目をクリックすると、その日の走行ルート（始点・終点・日跨ぎ色分け付き）を地図上にハイライト表示します。">?</span>
+        </div>
+        <div id="longestDaysList" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🚀 FARTHEST REACH TOP 5</div>
+          <span class="help-mark" data-tip-title="FARTHEST REACH TOP 5" data-tip="自宅拠点から直線距離で最も遠くまで到達したスポットTOP5です。項目をクリックすると地図上でその地点へ移動します。">?</span>
+        </div>
+        <div id="farthestSpotsList" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🧭 EXTREME POINTS</div>
+          <span class="help-mark" data-tip-title="EXTREME POINTS" data-tip="記録された中で最も北・南・東・西に到達した極点レコードです。項目をクリックすると地図上でその地点へ移動します。">?</span>
+        </div>
+        <div id="extremeList" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="box" id="resetExclusionsBox" style="display:none;">
+        <button type="button" class="btn btn-sub" onclick="resetAllIgnored()">🔄 RESET EXCLUDED ITEMS</button>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">🌙 TIME OF DAY RATIO</div>
+          <span class="help-mark" data-tip-title="TIME OF DAY RATIO" data-tip="昼間（6:00〜18:00）、夕方・夜（18:00〜22:00）、深夜（22:00〜翌6:00）の走行距離比率です。">?</span>
+        </div>
+        <div id="timeOfDayBar" style="margin-top:6px;"><p class="note">NO DATA</p></div>
+      </div>
+    </div>
+
+    <!-- Tab 4: REPLAY & PHOTO -->
+    <div id="tab-play" class="tab-content">
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">▶️ ROUTE TIMELAPSE</div>
+        </div>
+        <div id="replayTargetInfo" class="note" style="color:var(--p-cyan); margin-bottom:8px;">TARGET: ACTIVE MAP ROUTE</div>
+        <label>PLAYBACK SPEED <span class="help-mark" data-tip-title="PLAYBACK SPEED" data-tip="タイムラプス再生の進行速度を選択します。1日分のルート再生にはSLOWまたはNORMALが適しています。">?</span></label>
+        <select id="playSpeed">
+          <option value="2">SLOW (DETAIL)</option>
+          <option value="10" selected>NORMAL</option>
+          <option value="40">FAST</option>
+          <option value="120">ULTRA FAST</option>
+        </select>
+        <button type="button" class="btn" id="btnPlay" onclick="startTimelapse()">▶️ SHOWTIME!! (START)</button>
+        <button type="button" class="btn btn-stop" id="btnStop" onclick="stopTimelapse()" style="display:none;">⏹️ STOP</button>
+        <div id="playStatus" style="font-weight:800; color:var(--p-yellow); font-size:0.85rem; text-align:center; margin-top:4px;"></div>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">📸 PHOTO MAPPING (EXIF)</div>
+        </div>
+        <label>SELECT JPEG PHOTOS <span class="help-mark" data-tip-title="PHOTO EXIF MAPPING" data-tip="GPS位置情報（Exif）が含まれるJPEG写真を選択すると、撮影地点にサムネイルマーカーを配置します。">?</span></label>
+        <input type="file" id="photoInput" accept="image/jpeg,image/jpg,.jpg,.jpeg" multiple>
+        <button type="button" id="clearPhotosBtn" class="btn btn-sub" style="display:none; margin-top:4px;" onclick="clearMappedPhotos()">🗑️ CLEAR MAPPED PHOTOS</button>
+        <div id="photoStatus" class="note"></div>
+      </div>
+    </div>
+
+    <!-- Tab 5: LOGBOOK -->
+    <div id="tab-memo" class="tab-content">
+      <div class="box">
+        <div class="section-header-row">
+          <div class="section-title">📝 MEMORY LOGBOOK</div>
+        </div>
+        <div id="memoListContainer" style="margin-top:8px;"><p class="note">NO LOGS SAVED</p></div>
+        <hr style="border:none; border-top:2px solid var(--p-red); margin:12px 0;">
+        <button type="button" class="btn btn-sub" onclick="exportMemos()">💾 EXPORT JSON</button>
+        <label style="margin-top:8px;">📂 IMPORT JSON</label>
+        <input type="file" id="memoImportInput" accept=".json" onchange="importMemos(event)">
+      </div>
+    </div>
+  </div>
+
+  <div id="map" class="phantom-map-filter">
+    <div id="floating-banner">
+      <div class="banner-top">
+        <span id="floating-banner-text">🛣️ TARGET ROUTE</span>
+        <button type="button" id="banner-replay-btn" class="banner-btn play" onclick="startTimelapse()">▶️ REPLAY</button>
+        <button type="button" class="banner-btn" onclick="resetAllMapFilters()">× ALL</button>
+      </div>
+      <div id="banner-day-legend"></div>
+    </div>
+  </div>
+
+  <script>
+    // Modal & Tooltip Controllers
+    window.toggleGuideModal = function(show) {
+      document.getElementById('guide-modal').style.display = show ? 'flex' : 'none';
+    };
+
+    const tooltipEl = document.getElementById('custom-tooltip');
+    document.addEventListener('mouseover', function(e) {
+      const target = e.target.closest('[data-tip]');
+      if (target) {
+        const title = target.getAttribute('data-tip-title');
+        const text = target.getAttribute('data-tip');
+        tooltipEl.innerHTML = (title ? `<div class="tt-title">🏁 ${title}</div>` : '') + `<div>${text}</div>`;
+        tooltipEl.style.display = 'block';
+      }
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (tooltipEl.style.display === 'block') {
+        let x = e.clientX + 16;
+        let y = e.clientY + 16;
+        if (x + 320 > window.innerWidth) x = Math.max(10, e.clientX - 320);
+        if (y + 140 > window.innerHeight) y = Math.max(10, e.clientY - 120);
+        tooltipEl.style.left = x + 'px';
+        tooltipEl.style.top = y + 'px';
+      }
+    });
+    document.addEventListener('mouseout', function(e) {
+      const target = e.target.closest('[data-tip]');
+      if (target) tooltipEl.style.display = 'none';
+    });
+
+    // UI & Tab Navigation
+    const TAB_ORDER = ['tab-main', 'tab-pref', 'tab-rank', 'tab-play', 'tab-memo'];
+
+    window.toggleMapTheme = function() {
+      const isPhantom = document.getElementById('phantomMapFilter').checked;
+      const mapEl = document.getElementById('map');
+      if (isPhantom) mapEl.classList.add('phantom-map-filter');
+      else mapEl.classList.remove('phantom-map-filter');
+    };
+
+    window.toggleSidebar = function(open) {
+      const sb = document.getElementById('sidebar');
+      if (open) sb.classList.remove('closed');
+      else sb.classList.add('closed');
+      if (window.mapObj) setTimeout(() => window.mapObj.invalidateSize(), 200);
+    };
+
+    window.switchTab = function(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+      if (btn) {
+        btn.classList.add('active');
+      } else {
+        const matchBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        if (matchBtn) matchBtn.classList.add('active');
+      }
+    };
+
+    window.cycleTab = function(dir) {
+      const activeBtn = document.querySelector('.tab-btn.active');
+      const curId = activeBtn ? activeBtn.getAttribute('data-tab') : 'tab-main';
+      let idx = TAB_ORDER.indexOf(curId);
+      idx = (idx + dir + TAB_ORDER.length) % TAB_ORDER.length;
+      switchTab(TAB_ORDER[idx]);
+    };
+
+    window.clearDateFilter = function() {
+      document.getElementById('dateStart').value = '';
+      document.getElementById('dateEnd').value = '';
+      renderData();
+    };
+
+    window.selectYearFromLog = function(yearStr) {
+      const select = document.getElementById('yearFilter');
+      if (!select || select.disabled) return;
+      document.getElementById('dateStart').value = '';
+      document.getElementById('dateEnd').value = '';
+      if (select.value === String(yearStr)) {
+        select.value = 'all';
+      } else {
+        select.value = String(yearStr);
+      }
+      renderData();
+    };
+
+    // Prefecture Pin Filter
+    let selectedPrefFilter = null;
+
+    window.filterByPref = function(prefName, stay, visit, passDays) {
+      showPrefDetail(prefName, stay, visit, passDays);
+      if (selectedPrefFilter === prefName) {
+        selectedPrefFilter = null;
+      } else {
+        selectedPrefFilter = prefName;
+      }
+      renderData();
+    };
+
+    window.clearPrefFilter = function() {
+      selectedPrefFilter = null;
+      renderData();
+    };
+
+    window.resetAllMapFilters = function() {
+      selectedPrefFilter = null;
+      renderData();
+    };
+
+    // LocalStorage Management
+    let savedMemos = {};
+    let ignoredDays = {};
+    let ignoredSpots = {};
+    try {
+      const stored = localStorage.getItem('timeline_viewer_memos_v9');
+      if (stored) savedMemos = JSON.parse(stored);
+      const storedIgnored = localStorage.getItem('timeline_viewer_ignored_days_v9');
+      if (storedIgnored) ignoredDays = JSON.parse(storedIgnored);
+      const storedSpots = localStorage.getItem('timeline_viewer_ignored_spots_v9');
+      if (storedSpots) ignoredSpots = JSON.parse(storedSpots);
+    } catch (e) {}
+
+    function saveMemosToStorage() {
+      try { localStorage.setItem('timeline_viewer_memos_v9', JSON.stringify(savedMemos)); } catch (e) {}
+    }
+    function saveIgnoredToStorage() {
+      try {
+        localStorage.setItem('timeline_viewer_ignored_days_v9', JSON.stringify(ignoredDays));
+        localStorage.setItem('timeline_viewer_ignored_spots_v9', JSON.stringify(ignoredSpots));
+      } catch (e) {}
+    }
+
+    window.ignoreDay = function(keyStr) {
+      ignoredDays[keyStr] = true;
+      saveIgnoredToStorage();
+      renderData();
+    };
+    window.ignoreSpot = function(spotKey) {
+      ignoredSpots[spotKey] = true;
+      saveIgnoredToStorage();
+      renderData();
+    };
+    window.resetAllIgnored = function() {
+      ignoredDays = {};
+      ignoredSpots = {};
+      saveIgnoredToStorage();
+      renderData();
+    };
+
+    // Map Initialization (Canvas Renderer)
+    const gsiPale = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { attribution: 'GSI Pale', maxZoom: 18 });
+    const gsiStd = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { attribution: 'GSI Std', maxZoom: 18 });
+    const gsiPhoto = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', { attribution: 'GSI Photo', maxZoom: 18 });
+
+    const canvasRenderer = L.canvas({ padding: 0.5 });
+    const map = L.map('map', {
+      center: [36.2048, 138.2529],
+      zoom: 5,
+      layers: [gsiPale],
+      preferCanvas: true,
+      renderer: canvasRenderer
+    });
+    window.mapObj = map;
+    L.control.layers({ "GSI PALE": gsiPale, "GSI STANDARD": gsiStd, "SATELLITE": gsiPhoto }).addTo(map);
+
+    let polylinesLayer = L.layerGroup().addTo(map);
+    let highlightMarkersLayer = L.layerGroup().addTo(map);
+    let visitsLayer = L.layerGroup().addTo(map);
+    let extremeLayer = L.layerGroup().addTo(map);
+    let radarLayer = L.layerGroup().addTo(map);
+    let photosLayer = L.layerGroup().addTo(map);
+    let animLayer = L.layerGroup().addTo(map);
+
+    let rawSegments = [];
+    let allFilteredPlaybackPoints = [];
+    let activePlaybackPoints = [];
+    let sessionRoutesMap = {};
+    let dateToSessionsMap = {};
+    let animTimer = null;
+
+    let homeCoords = null;
+
+    const DAY_PALETTE = [
+      '#e60012', // DAY 1: RED
+      '#00e5ff', // DAY 2: CYAN
+      '#ffe600', // DAY 3: YELLOW
+      '#d946ef', // DAY 4: MAGENTA
+      '#00ff88', // DAY 5: GREEN
+      '#ff6600'  // DAY 6: ORANGE
+    ];
+
+    // Extreme Capes Coordinates (12km proximity threshold)
+    const EXTREME_CAPES = {
+      // Honshu 4 Extremes
+      oma:      { lat: 41.5464, lon: 140.9125, radiusKm: 12.0 },
+      todoga:   { lat: 39.5483, lon: 142.0725, radiusKm: 12.0 },
+      shiono:   { lat: 33.4339, lon: 135.7583, radiusKm: 12.0 },
+      bishano:  { lat: 34.1114, lon: 130.8583, radiusKm: 12.0 },
+      // Mainland 4 Extremes
+      soya:     { lat: 45.5229, lon: 141.9366, radiusKm: 12.0 },
+      nosappu:  { lat: 43.3853, lon: 145.8164, radiusKm: 12.0 },
+      sata:     { lat: 30.9942, lon: 130.6606, radiusKm: 12.0 },
+      kouzaki:  { lat: 33.2153, lon: 129.5536, radiusKm: 12.0 }
+    };
+
+    function isInsideJapan(lat, lon) {
+      if (lat < 24.0 || lat > 45.65 || lon < 122.9 || lon > 146.2) return false;
+      if (lat >= 35.0 && lat <= 43.5 && lon < 129.6) return false;
+      if (lat >= 38.5 && lat <= 45.0 && lon < 135.0) return false;
+      return true;
+    }
+
+    function isOkinawaOrRemoteIsland(lat, lon) {
+      if (lat < 30.95) return true;
+      if (lat < 34.0 && lon > 139.0) return true;
+      return false;
+    }
+
+    function isTokyo23OrHomeArea(lat, lon) {
+      const inTokyo23 = (lat >= 35.53 && lat <= 35.82 && lon >= 139.56 && lon <= 139.92);
+      if (inTokyo23) return true;
+      if (homeCoords) {
+        const distFromHome = calcDistanceKm(homeCoords[0], homeCoords[1], lat, lon);
+        if (distFromHome <= 15.0) return true;
+      }
+      return false;
+    }
+
+    function isDeepOceanPoint(lat, lon) {
+      if (lat >= 36.5 && lat <= 41.8 && lon > 142.3) return true;
+      if (lat >= 30.0 && lat <= 33.2 && lon >= 132.0 && lon <= 141.0) return true;
+      if (lat >= 33.2 && lat <= 34.1 && lon >= 136.3 && lon <= 139.5) return true;
+      if (lat >= 38.2 && lat <= 41.2 && lon >= 132.0 && lon <= 138.0) return true;
+      return false;
+    }
+
+    function isFerrySegment(pt1, pt2, rawDist, hours) {
+      if (isDeepOceanPoint(pt1[0], pt1[1]) || isDeepOceanPoint(pt2[0], pt2[1])) return true;
+      const midLat = (pt1[0] + pt2[0]) * 0.5;
+      const midLon = (pt1[1] + pt2[1]) * 0.5;
+      if (isDeepOceanPoint(midLat, midLon)) return true;
+
+      const isHokkaido1 = (pt1[0] >= 41.33);
+      const isHokkaido2 = (pt2[0] >= 41.33);
+      if (isHokkaido1 !== isHokkaido2) return true;
+
+      if (midLat >= 35.15 && midLat <= 35.25 && midLon >= 139.73 && midLon <= 139.81 && rawDist >= 6.0) return true;
+      if (midLat >= 34.48 && midLat <= 34.62 && midLon >= 136.86 && midLon <= 137.03 && rawDist >= 10.0) return true;
+      if (midLat >= 34.90 && midLat <= 35.02 && midLon >= 138.55 && midLon <= 138.75 && rawDist >= 12.0) return true;
+      if (rawDist > 65.0) return true;
+
+      return false;
+    }
+
+    const PREFS = [
+      { name: "北海道", reg: "HOKKAIDO", side: "EAST", minLat: 41.35, maxLat: 45.55, minLon: 139.7, maxLon: 145.85 },
+      { name: "青森", reg: "TOHOKU", side: "EAST", minLat: 40.25, maxLat: 41.55, minLon: 139.5, maxLon: 141.68 },
+      { name: "岩手", reg: "TOHOKU", side: "EAST", minLat: 38.75, maxLat: 40.45, minLon: 140.65, maxLon: 142.08 },
+      { name: "宮城", reg: "TOHOKU", side: "EAST", minLat: 37.78, maxLat: 39.0, minLon: 140.28, maxLon: 141.68 },
+      { name: "秋田", reg: "TOHOKU", side: "EAST", minLat: 38.88, maxLat: 40.5, minLon: 139.7, maxLon: 140.98 },
+      { name: "山形", reg: "TOHOKU", side: "EAST", minLat: 37.75, maxLat: 39.18, minLon: 139.52, maxLon: 140.64 },
+      { name: "福島", reg: "TOHOKU", side: "EAST", minLat: 36.8, maxLat: 37.98, minLon: 139.18, maxLon: 141.05 },
+      { name: "茨城", reg: "KANTO", side: "EAST", minLat: 35.74, maxLat: 36.94, minLon: 139.68, maxLon: 140.85 },
+      { name: "栃木", reg: "KANTO", side: "EAST", minLat: 36.2, maxLat: 37.15, minLon: 139.32, maxLon: 140.3 },
+      { name: "群馬", reg: "KANTO", side: "EAST", minLat: 35.98, maxLat: 37.05, minLon: 138.4, maxLon: 139.65 },
+      { name: "埼玉", reg: "KANTO", side: "EAST", minLat: 35.75, maxLat: 36.28, minLon: 138.7, maxLon: 139.9 },
+      { name: "千葉", reg: "KANTO", side: "EAST", minLat: 34.9, maxLat: 36.1, minLon: 139.74, maxLon: 140.88 },
+      { name: "東京", reg: "KANTO", side: "EAST", minLat: 35.5, maxLat: 35.9, minLon: 138.95, maxLon: 139.92 },
+      { name: "神奈川", reg: "KANTO", side: "EAST", minLat: 35.12, maxLat: 35.67, minLon: 138.92, maxLon: 139.8 },
+      { name: "新潟", reg: "CHUBU", side: "EAST", minLat: 36.75, maxLat: 38.55, minLon: 137.65, maxLon: 139.9 },
+      { name: "富山", reg: "CHUBU", side: "EAST", minLat: 36.28, maxLat: 36.98, minLon: 136.78, maxLon: 137.76 },
+      { name: "石川", reg: "CHUBU", side: "EAST", minLat: 36.07, maxLat: 37.85, minLon: 136.24, maxLon: 137.36 },
+      { name: "福井", reg: "CHUBU", side: "WEST", minLat: 35.35, maxLat: 36.3, minLon: 135.45, maxLon: 136.82 },
+      { name: "山梨", reg: "CHUBU", side: "EAST", minLat: 35.17, maxLat: 35.98, minLon: 138.18, maxLon: 139.14 },
+      { name: "長野", reg: "CHUBU", side: "EAST", minLat: 35.2, maxLat: 37.02, minLon: 137.32, maxLon: 138.74 },
+      { name: "岐阜", reg: "CHUBU", side: "WEST", minLat: 35.14, maxLat: 36.46, minLon: 136.28, maxLon: 137.65 },
+      { name: "静岡", reg: "CHUBU", side: "EAST", minLat: 34.58, maxLat: 35.64, minLon: 137.48, maxLon: 139.18 },
+      { name: "愛知", reg: "CHUBU", side: "WEST", minLat: 34.58, maxLat: 35.42, minLon: 136.68, maxLon: 137.84 },
+      { name: "三重", reg: "KINKI", side: "WEST", minLat: 33.72, maxLat: 35.25, minLon: 135.85, maxLon: 136.98 },
+      { name: "滋賀", reg: "KINKI", side: "WEST", minLat: 34.8, maxLat: 35.7, minLon: 135.76, maxLon: 136.45 },
+      { name: "京都", reg: "KINKI", side: "WEST", minLat: 34.7, maxLat: 35.78, minLon: 134.85, maxLon: 136.05 },
+      { name: "大阪", reg: "KINKI", side: "WEST", minLat: 34.28, maxLat: 35.05, minLon: 135.1, maxLon: 135.75 },
+      { name: "兵庫", reg: "KINKI", side: "WEST", minLat: 34.15, maxLat: 35.68, minLon: 134.25, maxLon: 135.48 },
+      { name: "奈良", reg: "KINKI", side: "WEST", minLat: 33.85, maxLat: 34.78, minLon: 135.55, maxLon: 136.22 },
+      { name: "和歌山", reg: "KINKI", side: "WEST", minLat: 33.42, maxLat: 34.38, minLon: 135.05, maxLon: 136.0 },
+      { name: "鳥取", reg: "CHUGOKU", side: "WEST", minLat: 35.05, maxLat: 35.62, minLon: 133.15, maxLon: 134.5 },
+      { name: "島根", reg: "CHUGOKU", side: "WEST", minLat: 34.3, maxLat: 36.35, minLon: 131.65, maxLon: 133.4 },
+      { name: "岡山", reg: "CHUGOKU", side: "WEST", minLat: 34.3, maxLat: 35.35, minLon: 133.26, maxLon: 134.42 },
+      { name: "広島", reg: "CHUGOKU", side: "WEST", minLat: 34.03, maxLat: 35.1, minLon: 132.04, maxLon: 133.48 },
+      { name: "山口", reg: "CHUGOKU", side: "WEST", minLat: 33.72, maxLat: 34.78, minLon: 130.78, maxLon: 132.25 },
+      { name: "徳島", reg: "SHIKOKU", side: "WEST", minLat: 33.54, maxLat: 34.25, minLon: 133.65, maxLon: 134.82 },
+      { name: "香川", reg: "SHIKOKU", side: "WEST", minLat: 34.02, maxLat: 34.58, minLon: 133.45, maxLon: 134.45 },
+      { name: "愛媛", reg: "SHIKOKU", side: "WEST", minLat: 32.9, maxLat: 34.3, minLon: 132.02, maxLon: 133.7 },
+      { name: "高知", reg: "SHIKOKU", side: "WEST", minLat: 32.7, maxLat: 33.88, minLon: 132.48, maxLon: 134.32 },
+      { name: "福岡", reg: "KYUSHU", side: "WEST", minLat: 33.0, maxLat: 34.0, minLon: 130.08, maxLon: 131.18 },
+      { name: "佐賀", reg: "KYUSHU", side: "WEST", minLat: 32.95, maxLat: 33.62, minLon: 129.74, maxLon: 130.54 },
+      { name: "長崎", reg: "KYUSHU", side: "WEST", minLat: 32.55, maxLat: 34.72, minLon: 128.6, maxLon: 130.4 },
+      { name: "熊本", reg: "KYUSHU", side: "WEST", minLat: 32.08, maxLat: 33.2, minLon: 129.95, maxLon: 131.33 },
+      { name: "大分", reg: "KYUSHU", side: "WEST", minLat: 32.72, maxLat: 33.75, minLon: 130.82, maxLon: 132.1 },
+      { name: "宮崎", reg: "KYUSHU", side: "WEST", minLat: 31.35, maxLat: 32.85, minLon: 130.7, maxLon: 131.88 },
+      { name: "鹿児島", reg: "KYUSHU", side: "WEST", minLat: 27.0, maxLat: 32.2, minLon: 128.4, maxLon: 131.22 },
+      { name: "沖縄", reg: "OKINAWA", side: "WEST", minLat: 24.0, maxLat: 27.9, minLon: 122.9, maxLon: 131.35 }
+    ];
+
+    function initPrefGrid() {
+      let html = '';
+      PREFS.forEach(p => { html += `<div class="pref-badge">${p.name}</div>`; });
+      document.getElementById('pref-list').innerHTML = html;
+    }
+    initPrefGrid();
+
+    function calcDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // Universal Coordinate Parser (Supports Android "35.6°, 139.7°", iOS "geo:35.6,139.7", and E7 integers)
+    function parsePoint(pointInput) {
+      if (!pointInput) return null;
+      if (Array.isArray(pointInput) && pointInput.length === 2) {
+        return [parseFloat(pointInput[0]), parseFloat(pointInput[1])];
+      }
+      if (typeof pointInput === 'object') {
+        if (pointInput.latLng) return parsePoint(pointInput.latLng);
+        if (pointInput.point) return parsePoint(pointInput.point);
+        if (pointInput.latitudeE7 !== undefined && pointInput.longitudeE7 !== undefined) {
+          return [pointInput.latitudeE7 / 1e7, pointInput.longitudeE7 / 1e7];
+        }
+        if (pointInput.latitude !== undefined && pointInput.longitude !== undefined) {
+          return [parseFloat(pointInput.latitude), parseFloat(pointInput.longitude)];
+        }
+        return null;
+      }
+      if (typeof pointInput === 'string') {
+        const cleaned = pointInput.replace(/^geo:/i, '').replace(/°/g, '').trim();
+        const parts = cleaned.split(',');
+        if (parts.length < 2) return null;
+        const lat = parseFloat(parts[0].trim());
+        const lon = parseFloat(parts[1].trim());
+        if (isNaN(lat) || isNaN(lon)) return null;
+        return [lat, lon];
+      }
+      return null;
+    }
+
+    // Universal Timeline Data Normalizer (Supports Android, iOS, and Google Takeout JSON formats)
+    function normalizeTimelineData(json) {
+      let sourceArray = [];
+      if (Array.isArray(json)) {
+        sourceArray = json; // iOS format (root array)
+      } else if (json && Array.isArray(json.semanticSegments)) {
+        sourceArray = json.semanticSegments; // Android format
+      } else if (json && Array.isArray(json.timelineObjects)) {
+        sourceArray = json.timelineObjects; // Legacy Takeout format
+      } else if (json && Array.isArray(json.rawSignals)) {
+        sourceArray = json.rawSignals;
+      }
+
+      const normalized = [];
+
+      sourceArray.forEach(item => {
+        if (!item) return;
+
+        // 1. Legacy Google Takeout format (placeVisit / activitySegment)
+        if (item.placeVisit) {
+          const pv = item.placeVisit;
+          const loc = pv.location || {};
+          const pt = parsePoint(loc);
+          const startTime = pv.duration ? pv.duration.startTimestamp : null;
+          const endTime = pv.duration ? pv.duration.endTimestamp : startTime;
+          if (pt && startTime) {
+            normalized.push({
+              startTime: startTime,
+              endTime: endTime,
+              visit: {
+                topCandidate: {
+                  placeId: loc.placeId || "",
+                  semanticType: loc.semanticType || "UNKNOWN",
+                  placeLocation: { latLng: `${pt[0]}, ${pt[1]}` }
+                }
+              }
+            });
+          }
+          return;
+        }
+        if (item.activitySegment) {
+          const as = item.activitySegment;
+          const startTime = as.duration ? as.duration.startTimestamp : null;
+          const endTime = as.duration ? as.duration.endTimestamp : startTime;
+          const pathPts = [];
+          if (as.startLocation) {
+            const p1 = parsePoint(as.startLocation);
+            if (p1 && startTime) pathPts.push({ point: `${p1[0]}, ${p1[1]}`, time: startTime });
+          }
+          if (as.waypointPath && Array.isArray(as.waypointPath.waypoints)) {
+            as.waypointPath.waypoints.forEach(wp => {
+              const p = parsePoint(wp);
+              if (p) pathPts.push({ point: `${p[0]}, ${p[1]}`, time: startTime });
+            });
+          }
+          if (as.simplifiedRawPath && Array.isArray(as.simplifiedRawPath.points)) {
+            as.simplifiedRawPath.points.forEach(rp => {
+              const p = parsePoint(rp);
+              if (p) pathPts.push({ point: `${p[0]}, ${p[1]}`, time: rp.timestamp || startTime });
+            });
+          }
+          if (as.endLocation) {
+            const p2 = parsePoint(as.endLocation);
+            if (p2 && endTime) pathPts.push({ point: `${p2[0]}, ${p2[1]}`, time: endTime });
+          }
+          if (pathPts.length > 0 && startTime) {
+            normalized.push({ startTime: startTime, endTime: endTime, timelinePath: pathPts });
+          }
+          return;
+        }
+
+        // 2. Android & iOS On-Device Export formats
+        const startTime = item.startTime;
+        const endTime = item.endTime || startTime;
+        if (!startTime) return;
+
+        const normSeg = { startTime: startTime, endTime: endTime };
+
+        // Visit normalization
+        if (item.visit) {
+          const top = item.visit.topCandidate || item.visit;
+          const locSource = top.placeLocation || item.visit.placeLocation || top;
+          const pt = parsePoint(locSource);
+          if (pt) {
+            let semType = top.semanticType || item.visit.semanticType || "UNKNOWN";
+            if (semType === "Inferred Home" || semType === "TYPE_HOME") semType = "HOME";
+            normSeg.visit = {
+              topCandidate: {
+                placeId: top.placeID || top.placeId || "",
+                semanticType: semType,
+                placeLocation: { latLng: `${pt[0]}, ${pt[1]}` }
+              }
+            };
+          }
+        }
+
+        // TimelinePath & Activity normalization
+        if (Array.isArray(item.timelinePath) && item.timelinePath.length > 0) {
+          const baseMs = new Date(startTime).getTime();
+          const normPath = [];
+          item.timelinePath.forEach(pObj => {
+            const pt = parsePoint(pObj.point || pObj);
+            if (!pt) return;
+            let tStr = pObj.time;
+            // iOS format uses durationMinutesOffsetFromStartTime instead of ISO time
+            if (!tStr && pObj.durationMinutesOffsetFromStartTime !== undefined && !isNaN(baseMs)) {
+              const offsetMin = parseFloat(pObj.durationMinutesOffsetFromStartTime);
+              tStr = new Date(baseMs + offsetMin * 60000).toISOString();
+            }
+            normPath.push({ point: `${pt[0]}, ${pt[1]}`, time: tStr || startTime });
+          });
+          if (normPath.length > 0) normSeg.timelinePath = normPath;
+        } else if (item.activity) {
+          // Fallback if segment only has activity start/end
+          const actPts = [];
+          const sPt = parsePoint(item.activity.start);
+          const ePt = parsePoint(item.activity.end);
+          if (sPt) actPts.push({ point: `${sPt[0]}, ${sPt[1]}`, time: startTime });
+          if (ePt) actPts.push({ point: `${ePt[0]}, ${ePt[1]}`, time: endTime });
+          if (actPts.length > 0) normSeg.timelinePath = actPts;
+        }
+
+        if (normSeg.visit || normSeg.timelinePath) {
+          normalized.push(normSeg);
+        }
+      });
+
+      return normalized;
+    }
+
+    function formatDateTime(isoStr) {
+      if (!isoStr) return "";
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return "";
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function formatLocalDate(dObj) {
+      return `${dObj.getFullYear()}-${String(dObj.getMonth()+1).padStart(2,'0')}-${String(dObj.getDate()).padStart(2,'0')}`;
+    }
+
+    function getPrefName(lat, lon) {
+      for (let i = 0; i < PREFS.length; i++) {
+        const p = PREFS[i];
+        if (lat >= p.minLat && lat <= p.maxLat && lon >= p.minLon && lon <= p.maxLon) return p.name;
+      }
+      return null;
+    }
+
+    function isOvernightStay(startIso, endIso) {
+      if (!startIso || !endIso) return false;
+      const s = new Date(startIso);
+      const e = new Date(endIso);
+      const stayHours = (e - s) / 3600000;
+      if (stayHours >= 10) return true;
+      if (stayHours >= 3.5 && (s.getDate() !== e.getDate() || s.getHours() >= 22 || s.getHours() <= 3)) return true;
+      return false;
+    }
+
+    window.showPrefDetail = function(name, stay, visit, passDays) {
+      document.getElementById('pref-board-name').textContent = `🗾 TARGET: ${name}`;
+      let statusText = "LOCKED (UNVISITED)";
+      if (stay > 0) statusText = "★ STAYED CLEAR";
+      else if (visit > 0) statusText = "● VISITED";
+      else if (passDays > 0) statusText = "▲ PASSED ONLY";
+      document.getElementById('pref-board-status').textContent = statusText;
+      document.getElementById('pref-board-stay').textContent = stay.toLocaleString();
+      document.getElementById('pref-board-visit').textContent = visit.toLocaleString();
+      document.getElementById('pref-board-pass').textContent = `${passDays.toLocaleString()}d`;
+    };
+
+    window.lookupAddress = async function(lat, lon, key, btnId) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.textContent = "SCANNING…⏳";
+      btn.disabled = true;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, { headers: { 'Accept-Language': 'ja' } });
+        const data = await res.json();
+        if (data && data.display_name) {
+          const name = data.display_name;
+          btn.outerHTML = `<div style="margin:6px 0; padding:6px; background:#1f1f1f; border-left:4px solid var(--p-yellow); font-size:0.73rem; color:#fff;"><strong>📍 ADDRESS：</strong><br>${name}</div>`;
+          const catSelect = document.getElementById(`cat_${key}`);
+          if (catSelect && catSelect.value === "📍") {
+            if (name.includes("ラーメン") || name.includes("食堂") || name.includes("レストラン") || name.includes("カフェ")) catSelect.value = "🍜";
+            else if (name.includes("道の駅") || name.includes("サービスエリア") || name.includes("パーキング")) catSelect.value = "🛣️";
+            else if (name.includes("温泉") || name.includes("湯")) catSelect.value = "♨️";
+            else if (name.includes("城") || name.includes("神社") || name.includes("神宮") || name.includes("寺")) catSelect.value = "🏯";
+            else if (name.includes("フェリー") || name.includes("港")) catSelect.value = "⛴️";
+            else if (name.includes("岬") || name.includes("公園") || name.includes("展望") || name.includes("峠")) catSelect.value = "🏍️";
+          }
+        } else { btn.textContent = "NOT FOUND"; }
+      } catch (e) { btn.textContent = "NETWORK ERROR"; }
+    };
+
+    window.saveSpotMemo = function(key, lat, lon) {
+      const cat = document.getElementById(`cat_${key}`).value;
+      const text = document.getElementById(`memo_${key}`).value;
+      savedMemos[key] = { cat: cat, text: text, lat: lat, lon: lon, updated: new Date().toLocaleDateString() };
+      saveMemosToStorage();
+      renderData();
+      updateMemoListUI();
+    };
+
+    function updateMemoListUI() {
+      const container = document.getElementById('memoListContainer');
+      const keys = Object.keys(savedMemos);
+      if (keys.length === 0) {
+        container.innerHTML = '<p class="note">NO LOGS SAVED</p>';
+        return;
+      }
+      let html = '';
+      keys.forEach(k => {
+        const m = savedMemos[k];
+        if (!m.text && m.cat === '📍') return;
+        html += `<div style="padding:8px; border-bottom:1px solid #333; font-size:0.78rem; cursor:pointer; text-align:left;" onclick="window.mapObj.setView([${m.lat}, ${m.lon}], 15);">
+          <span style="font-size:1.1rem;">${m.cat}</span> <strong style="color:var(--p-yellow);">${m.text || '(ICON ONLY)'}</strong>
+          <div style="font-size:0.68rem; color:#888;">COORD: ${k} (${m.updated})</div>
+        </div>`;
+      });
+      container.innerHTML = html || '<p class="note">NO LOGS SAVED</p>';
+    }
+    updateMemoListUI();
+
+    window.exportMemos = function() {
+      const blob = new Blob([JSON.stringify(savedMemos, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'touring_memos.json';
+      a.click();
+    };
+
+    window.importMemos = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const r = new FileReader();
+      r.onload = function(ev) {
+        try {
+          savedMemos = Object.assign(savedMemos, JSON.parse(ev.target.result));
+          saveMemosToStorage();
+          renderData();
+          updateMemoListUI();
+        } catch(err) { alert('JSON IMPORT FAILED'); }
+      };
+      r.readAsText(file);
+    };
+
+    // Automatic Home Coordinate Detection
+    function detectUserHomeCoords(segments) {
+      let explicitHome = null;
+      const stayCounter = {};
+      let maxCount = 0;
+      let mostFrequentPt = null;
+
+      segments.forEach(seg => {
+        if (seg.visit && seg.visit.topCandidate && seg.visit.topCandidate.placeLocation) {
+          const pt = parsePoint(seg.visit.topCandidate.placeLocation.latLng);
+          if (!pt || !isInsideJapan(pt[0], pt[1])) return;
+          if (seg.visit.topCandidate.semanticType === "HOME") {
+            explicitHome = pt;
+          }
+          const key = `${pt[0].toFixed(2)}_${pt[1].toFixed(2)}`;
+          stayCounter[key] = (stayCounter[key] || 0) + 1;
+          if (stayCounter[key] > maxCount) {
+            maxCount = stayCounter[key];
+            mostFrequentPt = pt;
+          }
+        }
+      });
+
+      if (explicitHome) return explicitHome;
+      if (mostFrequentPt) return mostFrequentPt;
+      return [35.6812, 139.7671];
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      document.getElementById('stats').innerHTML = "<p class='note' style='color:var(--p-yellow); font-weight:800;'>LOADING TIMELINE DATA…⏳</p>";
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const data = JSON.parse(event.target.result);
+          rawSegments = normalizeTimelineData(data);
+          if (rawSegments.length === 0) {
+            alert('有効なタイムラインデータが見つかりませんでした。ファイル形式をご確認ください。');
+            document.getElementById('stats').innerHTML = "<p class='note'>NO VALID DATA FOUND</p>";
+            return;
+          }
+          homeCoords = detectUserHomeCoords(rawSegments);
+
+          const years = new Set();
+          rawSegments.forEach(seg => {
+            if (seg.startTime) {
+              const y = seg.startTime.substring(0, 4);
+              if (/^\d{4}$/.test(y)) years.add(y);
+            }
+          });
+          
+          const select = document.getElementById('yearFilter');
+          select.innerHTML = '<option value="recent10">LAST 10 YEARS (2017 - 2026)</option><option value="all">ALL TIME</option>';
+          const sortedYears = Array.from(years).sort().reverse();
+          sortedYears.forEach(y => { select.innerHTML += `<option value="${y}">${y} ONLY</option>`; });
+          select.disabled = false;
+
+          if (window.innerWidth <= 768 && sortedYears.length > 0) select.value = sortedYears[0];
+          renderData();
+        } catch (err) { alert('JSON PARSE ERROR: ' + err.message); }
+      };
+      reader.readAsText(file);
+    });
+
+    ['yearFilter', 'dateStart', 'dateEnd', 'bridgeMode', 'noiseFilter', 'roadFactor', 'dayGroupingMode', 'routeStyle', 'excludeFerry', 'excludeOverseas', 'excludeOkinawa', 'hideTokyoHome', 'showVisits', 'hideHome', 'showExtreme', 'showRadar', 'recordScope'].forEach(id => {
+      document.getElementById(id).addEventListener('change', renderData);
+    });
+
+    // Highlight Specific Session or Date Route
+    function renderHighlightedSegments(segmentsList, bannerTitle) {
+      stopTimelapse();
+      polylinesLayer.clearLayers();
+      highlightMarkersLayer.clearLayers();
+
+      const boundsPts = [];
+      const highlightedPlayback = [];
+      const bridgeMode = document.getElementById('bridgeMode').value;
+
+      const uniqueDates = [];
+      segmentsList.forEach(seg => {
+        if (seg.date && !uniqueDates.includes(seg.date)) {
+          uniqueDates.push(seg.date);
+        }
+      });
+
+      const dateColorMap = {};
+      uniqueDates.forEach((dStr, idx) => {
+        dateColorMap[dStr] = DAY_PALETTE[idx % DAY_PALETTE.length];
+      });
+
+      let firstSeg = null;
+      let lastSeg = null;
+      let prevDate = null;
+
+      segmentsList.forEach(segObj => {
+        if (segObj.pts.length >= 2) {
+          if (!firstSeg) firstSeg = segObj;
+          lastSeg = segObj;
+
+          const col = dateColorMap[segObj.date] || '#e60012';
+          const isDashed = (segObj.isBridge && bridgeMode === 'bridge_dashed');
+
+          L.polyline(segObj.pts, {
+            color: col,
+            weight: 5.5,
+            opacity: 0.95,
+            dashArray: isDashed ? '8, 8' : null,
+            renderer: canvasRenderer
+          }).addTo(polylinesLayer);
+
+          segObj.pts.forEach((p, idx) => {
+            boundsPts.push(p);
+            const t = (idx === 0) ? segObj.startTime : segObj.endTime;
+            highlightedPlayback.push({ pt: p, time: t });
+          });
+
+          if (prevDate && segObj.date && segObj.date !== prevDate) {
+            const switchPt = segObj.pts[0];
+            const midIcon = L.divIcon({
+              className: '',
+              html: `<div class="flag-badge flag-midnight">🌙 ${segObj.date.substring(5)} 0:00</div>`,
+              iconSize: [0, 0]
+            });
+            L.marker(switchPt, { icon: midIcon, zIndexOffset: 1100 })
+              .bindPopup(`<div class="popup-content"><div class="popup-title">🌙 MIDNIGHT CROSSING</div><div><strong>${prevDate} ➔ ${segObj.date}</strong></div><div>TIME: ${formatDateTime(segObj.startTime)}</div></div>`)
+              .addTo(highlightMarkersLayer);
+          }
+          prevDate = segObj.date;
+        }
+      });
+
+      if (highlightedPlayback.length >= 2) {
+        activePlaybackPoints = highlightedPlayback;
+        document.getElementById('replayTargetInfo').textContent = `TARGET: ${bannerTitle} (${highlightedPlayback.length} PTS)`;
+      }
+
+      if (firstSeg) {
+        const startPt = firstSeg.pts[0];
+        const startPref = getPrefName(startPt[0], startPt[1]) || '';
+        const startIcon = L.divIcon({
+          className: '',
+          html: `<div class="flag-badge flag-start">🟢 START</div>`,
+          iconSize: [0, 0]
+        });
+        L.marker(startPt, { icon: startIcon, zIndexOffset: 1200 })
+          .bindPopup(`<div class="popup-content"><div class="popup-title">🟢 START ${startPref ? '['+startPref+']' : ''}</div><div>${formatDateTime(firstSeg.startTime)}</div><a href="https://www.google.com/maps?q=${startPt[0]},${startPt[1]}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a></div>`)
+          .addTo(highlightMarkersLayer);
+      }
+
+      if (lastSeg) {
+        const goalPt = lastSeg.pts[lastSeg.pts.length - 1];
+        const goalPref = getPrefName(goalPt[0], goalPt[1]) || '';
+        const goalIcon = L.divIcon({
+          className: '',
+          html: `<div class="flag-badge flag-goal">🏁 GOAL</div>`,
+          iconSize: [0, 0]
+        });
+        L.marker(goalPt, { icon: goalIcon, zIndexOffset: 1200 })
+          .bindPopup(`<div class="popup-content"><div class="popup-title">🏁 GOAL ${goalPref ? '['+goalPref+']' : ''}</div><div>${formatDateTime(lastSeg.endTime)}</div><a href="https://www.google.com/maps?q=${goalPt[0]},${goalPt[1]}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a></div>`)
+          .addTo(highlightMarkersLayer);
+      }
+
+      if (boundsPts.length > 0) map.fitBounds(boundsPts, { padding: [45, 45] });
+
+      const banner = document.getElementById('floating-banner');
+      document.getElementById('floating-banner-text').textContent = bannerTitle;
+      document.getElementById('banner-replay-btn').style.display = 'inline-block';
+      const legendBox = document.getElementById('banner-day-legend');
+      let legendHtml = `<span class="day-pill"><span class="day-dot" style="background:var(--p-red);"></span>🟢START</span>`;
+      uniqueDates.forEach((dStr, i) => {
+        const c = dateColorMap[dStr];
+        legendHtml += `<span class="day-pill"><span class="day-dot" style="background:${c};"></span>DAY ${i+1} (${dStr.substring(5)})</span>`;
+      });
+      legendHtml += `<span class="day-pill"><span class="day-dot" style="background:#000;"></span>🏁GOAL</span>`;
+      legendBox.innerHTML = legendHtml;
+
+      banner.style.display = 'flex';
+      if (window.innerWidth <= 768) toggleSidebar(false);
+    }
+
+    window.highlightSession = function(sessionKey, customLabel) {
+      const segmentsList = sessionRoutesMap[sessionKey];
+      if (!segmentsList || segmentsList.length === 0) {
+        alert('指定された日時の移動ルートデータが見つかりません。');
+        return;
+      }
+      renderHighlightedSegments(segmentsList, `${customLabel || sessionKey}`);
+    };
+
+    window.highlightRouteByDate = function(dateStr) {
+      const sKeys = dateToSessionsMap[dateStr];
+      if (!sKeys || sKeys.length === 0) {
+        alert(`${dateStr} の移動ルートデータが見つかりません。`);
+        return;
+      }
+      const combinedSegments = [];
+      sKeys.forEach(sKey => {
+        const list = sessionRoutesMap[sKey] || [];
+        list.forEach(seg => combinedSegments.push(seg));
+      });
+      renderHighlightedSegments(combinedSegments, `${dateStr}`);
+    };
+
+    function getHeatColor(count) {
+      if (count <= 1) return '#00b4d8';
+      if (count <= 2) return '#00f5d4';
+      if (count <= 4) return '#ffe600';
+      if (count <= 7) return '#ff5400';
+      return '#e60012';
+    }
+
+    // Main Data Processing & Rendering
+    function renderData() {
+      if (rawSegments.length === 0) return;
+      stopTimelapse();
+
+      const clearPrefBtn = document.getElementById('clearPrefFilterBtn');
+      if (clearPrefBtn) clearPrefBtn.style.display = selectedPrefFilter ? 'block' : 'none';
+
+      const banner = document.getElementById('floating-banner');
+      if (selectedPrefFilter) {
+        document.getElementById('floating-banner-text').textContent = `🗾 TARGET PREF: ${selectedPrefFilter} (PINS ONLY)`;
+        document.getElementById('banner-replay-btn').style.display = 'none';
+        document.getElementById('banner-day-legend').innerHTML = '';
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+
+      const hasIgnored = (Object.keys(ignoredDays).length > 0 || Object.keys(ignoredSpots).length > 0);
+      document.getElementById('resetExclusionsBox').style.display = hasIgnored ? 'block' : 'none';
+
+      const filterValue = document.getElementById('yearFilter').value;
+      const dateStart = document.getElementById('dateStart').value;
+      const dateEnd = document.getElementById('dateEnd').value;
+      const bridgeMode = document.getElementById('bridgeMode').value;
+      const noiseMode = document.getElementById('noiseFilter').value;
+      let roadFactor = parseFloat(document.getElementById('roadFactor').value);
+      if (isNaN(roadFactor) || roadFactor <= 0) roadFactor = 1.0;
+
+      const dayGroupingMode = document.getElementById('dayGroupingMode').value;
+      const routeStyle = document.getElementById('routeStyle').value;
+      document.getElementById('heatLegend').style.display = (routeStyle === 'heatmap') ? 'flex' : 'none';
+
+      const excludeFerry = document.getElementById('excludeFerry').checked;
+      const excludeOverseas = document.getElementById('excludeOverseas').checked;
+      const excludeOkinawa = document.getElementById('excludeOkinawa').checked;
+      const hideTokyoHome = document.getElementById('hideTokyoHome').checked;
+      const showVisits = document.getElementById('showVisits').checked;
+      const hideHome = document.getElementById('hideHome').checked;
+      const showExtreme = document.getElementById('showExtreme').checked;
+      const showRadar = document.getElementById('showRadar').checked;
+      const recordScope = document.getElementById('recordScope').value;
+
+      polylinesLayer.clearLayers();
+      highlightMarkersLayer.clearLayers();
+      visitsLayer.clearLayers();
+      extremeLayer.clearLayers();
+      radarLayer.clearLayers();
+      allFilteredPlaybackPoints = [];
+      activePlaybackPoints = [];
+      sessionRoutesMap = {};
+      dateToSessionsMap = {};
+
+      if (showRadar && homeCoords) {
+        [100, 300, 500, 1000].forEach(km => {
+          L.circle(homeCoords, { radius: km * 1000, color: '#ffe600', weight: 2, fillOpacity: 0.03, dashArray: '6,6', renderer: canvasRenderer })
+            .bindTooltip(`RADAR: ${km}km`, { sticky: true }).addTo(radarLayer);
+        });
+      }
+
+      const yearlyDistance = {};
+      const yearlyVisits = {};
+      const sessionDistance = {};
+      const sessionLabels = {};
+      let currentSessionKey = null;
+      let lastValidMoveTimeMs = null;
+
+      let totalDist = 0;
+      let totalStayCount = 0;
+      let totalRawVisitCount = 0;
+      const allBounds = [];
+      const mapPinGroups = {};
+      const recordSpotGroups = {};
+      const awayDatesSet = new Set();
+
+      const prefStats = {};
+      PREFS.forEach(p => { prefStats[p.name] = { stay: 0, visit: 0, passDays: new Set() }; });
+
+      const activeDaysSet = new Set();
+      const seasonsSet = new Set();
+
+      let distDay = 0, distEve = 0, distNight = 0;
+      let distWinter = 0;
+
+      const capeReached = {
+        oma: 0, todoga: 0, shiono: 0, bishano: 0,
+        soya: 0, nosappu: 0, sata: 0, kouzaki: 0
+      };
+
+      function checkExtremeCapes(lat, lon) {
+        for (const [k, cape] of Object.entries(EXTREME_CAPES)) {
+          if (capeReached[k] === 1) continue;
+          if (Math.abs(lat - cape.lat) < 0.15 && Math.abs(lon - cape.lon) < 0.15) {
+            if (calcDistanceKm(lat, lon, cape.lat, cape.lon) <= cape.radiusKm) {
+              capeReached[k] = 1;
+            }
+          }
+        }
+      }
+
+      let extremes = {
+        north: { lat: -90, lon: 0, date: '', key: '' },
+        south: { lat: 90, lon: 0, date: '', key: '' },
+        east: { lat: 0, lon: -180, date: '', key: '' },
+        west: { lat: 0, lon: 180, date: '', key: '' }
+      };
+
+      function isValidMapArea(lat, lon) {
+        if (selectedPrefFilter === "沖縄" && isOkinawaOrRemoteIsland(lat, lon)) return true;
+        if (excludeOverseas && !isInsideJapan(lat, lon)) return false;
+        if (excludeOkinawa && isOkinawaOrRemoteIsland(lat, lon)) return false;
+        if (excludeFerry && isDeepOceanPoint(lat, lon)) return false;
+        return true;
+      }
+
+      function isValidRecordArea(lat, lon) {
+        if (isDeepOceanPoint(lat, lon)) return false;
+        if (recordScope === 'mainland') {
+          if (!isInsideJapan(lat, lon)) return false;
+          if (isOkinawaOrRemoteIsland(lat, lon)) return false;
+          return true;
+        } else if (recordScope === 'japan_all') {
+          return isInsideJapan(lat, lon);
+        }
+        return true;
+      }
+
+      function getSpotKey(lat, lon) {
+        return `${lat.toFixed(2)}_${lon.toFixed(2)}`;
+      }
+
+      function updateExtremes(lat, lon, dateStr) {
+        if (!isValidRecordArea(lat, lon)) return;
+        if (isTokyo23OrHomeArea(lat, lon)) return;
+        const sKey = getSpotKey(lat, lon);
+        if (ignoredSpots[sKey]) return;
+        if (lat > extremes.north.lat) extremes.north = { lat, lon, date: dateStr, key: sKey };
+        if (lat < extremes.south.lat) extremes.south = { lat, lon, date: dateStr, key: sKey };
+        if (lon > extremes.east.lon) extremes.east = { lat, lon, date: dateStr, key: sKey };
+        if (lon < extremes.west.lon) extremes.west = { lat, lon, date: dateStr, key: sKey };
+      }
+
+      function registerActiveDate(dateStr) {
+        activeDaysSet.add(dateStr);
+        const m = parseInt(dateStr.substring(5, 7), 10);
+        if (m >= 3 && m <= 5) seasonsSet.add('SPRING');
+        else if (m >= 6 && m <= 8) seasonsSet.add('SUMMER');
+        else if (m >= 9 && m <= 11) seasonsSet.add('AUTUMN');
+        else seasonsSet.add('WINTER');
+      }
+
+      function getSessionKey(tStr) {
+        const dObj = new Date(tStr);
+        const tMs = dObj.getTime();
+        const rawDateStr = formatLocalDate(dObj);
+        let resultKey;
+
+        if (dayGroupingMode === 'session') {
+          if (!currentSessionKey || !lastValidMoveTimeMs || (tMs - lastValidMoveTimeMs > 3 * 3600000)) {
+            let idx = 1;
+            let candidate = rawDateStr;
+            while (sessionDistance[candidate] !== undefined) {
+              idx++;
+              candidate = `${rawDateStr} (#${idx})`;
+            }
+            currentSessionKey = candidate;
+            sessionLabels[currentSessionKey] = rawDateStr;
+          } else {
+            const startDayStr = sessionLabels[currentSessionKey].substring(0, 10);
+            if (rawDateStr !== startDayStr) {
+              sessionLabels[currentSessionKey] = `${startDayStr}〜${rawDateStr.substring(5)}`;
+            }
+          }
+          lastValidMoveTimeMs = tMs;
+          resultKey = currentSessionKey;
+        } else if (dayGroupingMode === '4am') {
+          const shifted = new Date(tMs - 4 * 3600000);
+          resultKey = formatLocalDate(shifted);
+          sessionLabels[resultKey] = resultKey;
+        } else {
+          resultKey = tStr.substring(0, 10);
+          sessionLabels[resultKey] = resultKey;
+        }
+
+        if (!dateToSessionsMap[rawDateStr]) dateToSessionsMap[rawDateStr] = [];
+        if (!dateToSessionsMap[rawDateStr].includes(resultKey)) {
+          dateToSessionsMap[rawDateStr].push(resultKey);
+        }
+        return resultKey;
+      }
+
+      let unifiedStream = [];
+
+      rawSegments.forEach((seg, segIdx) => {
+        if (!seg.startTime) return;
+        const dStartObj = new Date(seg.startTime);
+        if (isNaN(dStartObj.getTime())) return;
+        const dateStr = formatLocalDate(dStartObj);
+        const year = dStartObj.getFullYear();
+
+        if (dateStart && dateStr < dateStart) return;
+        if (dateEnd && dateStr > dateEnd) return;
+        if (!dateStart && !dateEnd) {
+          if (filterValue === 'recent10' && year < 2017) return;
+          if (filterValue !== 'all' && filterValue !== 'recent10' && year !== parseInt(filterValue, 10)) return;
+        }
+
+        if (!yearlyDistance[year]) yearlyDistance[year] = 0;
+        if (!yearlyVisits[year]) yearlyVisits[year] = 0;
+
+        if (seg.visit) {
+          const top = seg.visit.topCandidate;
+          if (top && top.placeLocation && top.placeLocation.latLng) {
+            const pt = parsePoint(top.placeLocation.latLng);
+            if (pt) {
+              const sKeySpot = getSpotKey(pt[0], pt[1]);
+              const semType = top.semanticType || "UNKNOWN";
+              const key = `${pt[0].toFixed(3)}_${pt[1].toFixed(3)}`;
+              const pName = getPrefName(pt[0], pt[1]);
+
+              const isHomeSpot = (semType === "HOME") || (homeCoords && calcDistanceKm(homeCoords[0], homeCoords[1], pt[0], pt[1]) <= 2.0);
+
+              if (isInsideJapan(pt[0], pt[1]) && !isHomeSpot) {
+                checkExtremeCapes(pt[0], pt[1]);
+                const overnight = isOvernightStay(seg.startTime, seg.endTime);
+                if (pName) {
+                  if (overnight) {
+                    prefStats[pName].stay++;
+                    totalStayCount++;
+                    awayDatesSet.add(dateStr);
+                  } else {
+                    prefStats[pName].visit++;
+                  }
+                  prefStats[pName].passDays.add(dateStr);
+                }
+                totalRawVisitCount++;
+                registerActiveDate(dateStr);
+              }
+
+              if (isValidRecordArea(pt[0], pt[1]) && !isHomeSpot && !isTokyo23OrHomeArea(pt[0], pt[1]) && !ignoredSpots[sKeySpot]) {
+                updateExtremes(pt[0], pt[1], dateStr);
+                if (!recordSpotGroups[key]) {
+                  recordSpotGroups[key] = { lat: pt[0], lon: pt[1], spotKey: sKeySpot, lastDate: formatDateTime(seg.startTime) };
+                } else {
+                  recordSpotGroups[key].lastDate = formatDateTime(seg.startTime);
+                }
+              }
+
+              if (isValidMapArea(pt[0], pt[1])) {
+                if (bridgeMode !== 'off') {
+                  unifiedStream.push({
+                    pt: pt,
+                    time: seg.startTime,
+                    ms: dStartObj.getTime(),
+                    segId: `visit_${segIdx}`,
+                    isVisitPoint: true
+                  });
+                  if (seg.endTime && seg.endTime !== seg.startTime) {
+                    const eMs = new Date(seg.endTime).getTime();
+                    if (!isNaN(eMs)) {
+                      unifiedStream.push({
+                        pt: pt,
+                        time: seg.endTime,
+                        ms: eMs,
+                        segId: `visit_${segIdx}`,
+                        isVisitPoint: true
+                      });
+                    }
+                  }
+                }
+
+                const matchesPrefFilter = !selectedPrefFilter || (pName === selectedPrefFilter);
+                const inExcludedArea = (!selectedPrefFilter) && hideTokyoHome && isTokyo23OrHomeArea(pt[0], pt[1]);
+
+                if (!inExcludedArea && !(hideHome && isHomeSpot) && !ignoredSpots[sKeySpot]) {
+                  yearlyVisits[year]++;
+                  if ((showVisits || selectedPrefFilter) && matchesPrefFilter) {
+                    if (!mapPinGroups[key]) {
+                      mapPinGroups[key] = { lat: pt[0], lon: pt[1], pref: pName, spotKey: sKeySpot, type: isHomeSpot ? "HOME" : semType, placeId: top.placeId || "", records: [], stayCount: 0 };
+                    }
+                    const stayMin = (seg.startTime && seg.endTime) ? Math.max(0, Math.round((new Date(seg.endTime) - dStartObj) / 60000)) : 0;
+                    if (isOvernightStay(seg.startTime, seg.endTime)) mapPinGroups[key].stayCount++;
+                    mapPinGroups[key].records.push({
+                      start: formatDateTime(seg.startTime),
+                      rawDate: dateStr,
+                      stayMin: stayMin
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        if (seg.timelinePath && seg.timelinePath.length > 0) {
+          for (let i = 0; i < seg.timelinePath.length; i++) {
+            const pt = parsePoint(seg.timelinePath[i].point);
+            const tStr = seg.timelinePath[i].time || seg.startTime;
+            if (!pt) continue;
+            if (isInsideJapan(pt[0], pt[1])) checkExtremeCapes(pt[0], pt[1]);
+            if (!isValidMapArea(pt[0], pt[1])) continue;
+            const ptMs = new Date(tStr).getTime();
+            if (isNaN(ptMs)) continue;
+            unifiedStream.push({
+              pt: pt,
+              time: tStr,
+              ms: ptMs,
+              segId: `path_${segIdx}`,
+              isVisitPoint: false
+            });
+          }
+        }
+      });
+
+      unifiedStream.sort((a, b) => a.ms - b.ms);
+
+      if (noiseMode !== 'raw' && unifiedStream.length > 2) {
+        let cleaned = [];
+        for (let i = 0; i < unifiedStream.length; i++) {
+          if (cleaned.length > 0 && i < unifiedStream.length - 1) {
+            const prev = cleaned[cleaned.length - 1];
+            const curr = unifiedStream[i];
+            const next = unifiedStream[i + 1];
+            const d1 = calcDistanceKm(prev.pt[0], prev.pt[1], curr.pt[0], curr.pt[1]);
+            const d2 = calcDistanceKm(curr.pt[0], curr.pt[1], next.pt[0], next.pt[1]);
+            const dBase = calcDistanceKm(prev.pt[0], prev.pt[1], next.pt[0], next.pt[1]);
+            if (d1 > 5.0 && d2 > 5.0 && dBase < Math.min(d1, d2) * 0.25) {
+              continue;
+            }
+          }
+          cleaned.push(unifiedStream[i]);
+        }
+        unifiedStream = cleaned;
+      }
+
+      let maxSpeed = 200, maxGapKm = 150, maxBridgeHours = 6;
+      if (noiseMode === 'loose') { maxSpeed = 250; maxGapKm = 300; maxBridgeHours = 12; }
+      else if (noiseMode === 'ultra') { maxSpeed = 200; maxGapKm = 30; maxBridgeHours = 3; }
+      else if (noiseMode === 'raw') { maxSpeed = 9999; maxGapKm = 500; maxBridgeHours = 24; }
+
+      const validPairs = [];
+      const gridCounts = {};
+      const globalDatesList = [];
+
+      function getGridKey(pt1, pt2) {
+        const mLat = ((pt1[0] + pt2[0]) * 0.5).toFixed(2);
+        const mLon = ((pt1[1] + pt2[1]) * 0.5).toFixed(2);
+        return `${mLat}_${mLon}`;
+      }
+
+      for (let i = 0; i < unifiedStream.length; i++) {
+        const curr = unifiedStream[i];
+        const pt = curr.pt;
+        const tStr = curr.time;
+        const dObj = new Date(curr.ms);
+        const localDateStr = formatLocalDate(dObj);
+        const year = dObj.getFullYear();
+        const month = dObj.getMonth() + 1;
+        if (!yearlyDistance[year]) yearlyDistance[year] = 0;
+
+        if (i % 5 === 0) allBounds.push(pt);
+
+        if (i === 0) {
+          getSessionKey(tStr);
+          allFilteredPlaybackPoints.push({ pt: pt, time: tStr });
+          continue;
+        }
+
+        const prev = unifiedStream[i - 1];
+        const rawDist = calcDistanceKm(prev.pt[0], prev.pt[1], pt[0], pt[1]);
+        if (rawDist < 0.01) continue;
+
+        const hours = Math.abs(curr.ms - prev.ms) / 3600000;
+        const speedKmh = hours > 0.001 ? (rawDist / hours) : 0;
+        const isDifferentSeg = (curr.segId !== prev.segId || curr.isVisitPoint || prev.isVisitPoint);
+
+        let canConnect = true;
+        if (excludeFerry && isFerrySegment(prev.pt, pt, rawDist, hours)) {
+          canConnect = false;
+        } else if (bridgeMode === 'off' && isDifferentSeg) {
+          canConnect = false;
+        } else {
+          if (rawDist > maxGapKm) canConnect = false;
+          if (hours > 0 && speedKmh > maxSpeed && rawDist > 2.5) canConnect = false;
+          if (hours < (1 / 60) && rawDist > 4.0) canConnect = false;
+          if (isDifferentSeg && hours > maxBridgeHours && rawDist > 10.0) canConnect = false;
+        }
+
+        if (canConnect) {
+          const sKey = getSessionKey(tStr);
+          if (!ignoredDays[sKey]) {
+            const adjustedDist = rawDist * roadFactor;
+            yearlyDistance[year] += adjustedDist;
+            totalDist += adjustedDist;
+            sessionDistance[sKey] = (sessionDistance[sKey] || 0) + adjustedDist;
+
+            if (month === 12 || month === 1 || month === 2) {
+              distWinter += adjustedDist;
+            }
+
+            registerActiveDate(localDateStr);
+            if (!globalDatesList.includes(localDateStr)) globalDatesList.push(localDateStr);
+
+            if (i % 3 === 0) {
+              const pName = getPrefName(pt[0], pt[1]);
+              if (pName) prefStats[pName].passDays.add(localDateStr);
+              updateExtremes(pt[0], pt[1], localDateStr);
+            }
+
+            const hr = dObj.getHours();
+            if (hr >= 6 && hr < 18) distDay += adjustedDist;
+            else if (hr >= 18 && hr < 22) distEve += adjustedDist;
+            else distNight += adjustedDist;
+
+            const isBridgeLine = (isDifferentSeg && rawDist > 2.0);
+            const gKey = getGridKey(prev.pt, pt);
+            gridCounts[gKey] = (gridCounts[gKey] || 0) + 0.35;
+
+            validPairs.push({ pt1: prev.pt, pt2: pt, hr: hr, date: localDateStr, startTime: prev.time, endTime: tStr, isBridge: isBridgeLine, gKey: gKey });
+            saveSessionPair(sKey, prev.pt, pt, isBridgeLine, localDateStr, prev.time, tStr);
+            allFilteredPlaybackPoints.push({ pt: pt, time: tStr });
+          }
+        } else {
+          getSessionKey(tStr);
+          allFilteredPlaybackPoints.push({ pt: pt, time: tStr });
+        }
+      }
+
+      activePlaybackPoints = allFilteredPlaybackPoints;
+      document.getElementById('replayTargetInfo').textContent = `TARGET: CONFIG FILTERED ROUTE (${activePlaybackPoints.length} PTS)`;
+
+      function saveSessionPair(sKey, pt1, pt2, isBridge, dateStr, t1, t2) {
+        if (!sKey || ignoredDays[sKey]) return;
+        if (!sessionRoutesMap[sKey]) sessionRoutesMap[sKey] = [];
+        const list = sessionRoutesMap[sKey];
+        if (list.length > 0) {
+          const lastSeg = list[list.length - 1];
+          const lastPts = lastSeg.pts;
+          const lastPt = lastPts[lastPts.length - 1];
+          if (lastSeg.isBridge === isBridge && lastSeg.date === dateStr && lastPt[0] === pt1[0] && lastPt[1] === pt1[1]) {
+            lastPts.push(pt2);
+            lastSeg.endTime = t2;
+            return;
+          }
+        }
+        list.push({ pts: [pt1, pt2], isBridge: isBridge, date: dateStr, startTime: t1, endTime: t2 });
+      }
+
+      let batchedLines = [];
+      for (let i = 0; i < validPairs.length; i++) {
+        const p = validPairs[i];
+        const isDashed = (p.isBridge && bridgeMode === 'bridge_dashed');
+        let col = '#e60012';
+        if (routeStyle === 'heatmap') {
+          col = getHeatColor(Math.ceil(gridCounts[p.gKey] || 1));
+        } else if (routeStyle === 'daily_color') {
+          const dIdx = globalDatesList.indexOf(p.date);
+          col = DAY_PALETTE[(dIdx >= 0 ? dIdx : 0) % DAY_PALETTE.length];
+        } else if (routeStyle === 'night') {
+          col = (p.hr >= 6 && p.hr < 18) ? '#ffe600' : (p.hr >= 18 && p.hr < 22 ? '#00e5ff' : '#e60012');
+        } else if (isDashed) {
+          col = '#ffe600';
+        }
+
+        if (batchedLines.length > 0) {
+          const last = batchedLines[batchedLines.length - 1];
+          const lastPt = last.pts[last.pts.length - 1];
+          if (last.color === col && last.dashed === isDashed && lastPt[0] === p.pt1[0] && lastPt[1] === p.pt1[1]) {
+            last.pts.push(p.pt2);
+            continue;
+          }
+        }
+        batchedLines.push({ pts: [p.pt1, p.pt2], color: col, dashed: isDashed });
+      }
+
+      if (routeStyle === 'heatmap') {
+        const order = { '#00b4d8': 1, '#00f5d4': 2, '#ffe600': 3, '#ff5400': 4, '#e60012': 5 };
+        batchedLines.sort((a, b) => (order[a.color] || 0) - (order[b.color] || 0));
+      }
+
+      batchedLines.forEach(b => {
+        L.polyline(b.pts, {
+          color: b.color,
+          weight: (routeStyle === 'heatmap' && b.color === '#e60012') ? 3.8 : 2.8,
+          opacity: 0.88,
+          dashArray: b.dashed ? '6, 6' : null,
+          renderer: canvasRenderer
+        }).addTo(polylinesLayer);
+      });
+
+      if ((dateStart || dateEnd || routeStyle === 'daily_color') && validPairs.length > 0 && globalDatesList.length <= 15) {
+        const firstP = validPairs[0];
+        const lastP = validPairs[validPairs.length - 1];
+        const sIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-start">🟢 START</div>`, iconSize: [0, 0] });
+        const gIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-goal">🏁 GOAL</div>`, iconSize: [0, 0] });
+        L.marker(firstP.pt1, { icon: sIcon, zIndexOffset: 1200 }).bindPopup(`<div class="popup-content"><div class="popup-title">🟢 START</div><div>${formatDateTime(firstP.startTime)}</div></div>`).addTo(highlightMarkersLayer);
+        L.marker(lastP.pt2, { icon: gIcon, zIndexOffset: 1200 }).bindPopup(`<div class="popup-content"><div class="popup-title">🏁 GOAL</div><div>${formatDateTime(lastP.endTime)}</div></div>`).addTo(highlightMarkersLayer);
+      }
+
+      let idx = 0;
+      const prefPinBounds = [];
+      Object.entries(mapPinGroups).forEach(([key, group]) => {
+        idx++;
+        const memoData = savedMemos[key] || { cat: '📍', text: '' };
+        const count = group.records.length;
+        const distFromHome = homeCoords ? calcDistanceKm(homeCoords[0], homeCoords[1], group.lat, group.lon) : 0;
+
+        if (selectedPrefFilter) prefPinBounds.push([group.lat, group.lon]);
+
+        let marker;
+        if (memoData.cat !== '📍' || memoData.text) {
+          const icon = L.divIcon({ className: 'emoji-marker', html: memoData.cat, iconSize: [28, 28], iconAnchor: [14, 14] });
+          marker = L.marker([group.lat, group.lon], { icon: icon });
+        } else {
+          const isHome = group.type === "HOME";
+          const isStay = group.stayCount > 0;
+          const radius = isHome ? 7 : Math.min(11, 5 + Math.log2(count) * 1.5);
+          marker = L.circleMarker([group.lat, group.lon], {
+            radius: radius,
+            fillColor: isHome ? '#00ff88' : (isStay ? '#e60012' : '#ffe600'),
+            color: '#000',
+            weight: 2,
+            fillOpacity: 0.92,
+            renderer: canvasRenderer
+          });
+        }
+
+        const btnId = `lookup_btn_${idx}`;
+        const listHtml = group.records.slice().reverse().slice(0, 12).map(r => `
+          <div class="visit-row">
+            <span>・${r.start} (${r.stayMin}m)</span>
+            <button type="button" class="btn-route-jump" onclick="highlightRouteByDate('${r.rawDate}')">🛣️ROUTE</button>
+          </div>
+        `).join('');
+
+        const gmapUrl = group.placeId
+          ? `https://www.google.com/maps/search/?api=1&query=${group.lat},${group.lon}&query_place_id=${group.placeId}`
+          : `https://www.google.com/maps?q=${group.lat},${group.lon}`;
+
+        const popupHtml = `
+          <div class="popup-content">
+            <div class="popup-title">${memoData.cat} SPOT (VISIT:${count} / STAY:${group.stayCount})</div>
+            <div style="font-size:0.72rem; color:#ccc; margin-bottom:4px;">🏠 DIST FROM HOME: ${Math.round(distFromHome)} km</div>
+            <div class="visit-list">${listHtml}</div>
+            <button type="button" id="${btnId}" class="btn" style="padding:5px; font-size:0.73rem;" onclick="lookupAddress(${group.lat}, ${group.lon}, '${key}', '${btnId}')">🔍 SCAN ADDRESS</button>
+            <div style="background:#141414; padding:6px; border:1px solid #444; margin-top:6px;">
+              <label style="font-size:0.7rem;">ICON &amp; MEMO</label>
+              <select id="cat_${key}" style="margin-bottom:4px; padding:3px; font-size:0.76rem;">
+                <option value="📍" ${memoData.cat==='📍'?'selected':''}>📍 STANDARD</option>
+                <option value="🍜" ${memoData.cat==='🍜'?'selected':''}>🍜 RAMEN / FOOD</option>
+                <option value="🛣️" ${memoData.cat==='🛣️'?'selected':''}>🛣️ MICHINOEKI / SA</option>
+                <option value="♨️" ${memoData.cat==='♨️'?'selected':''}>♨️ ONSEN</option>
+                <option value="🏯" ${memoData.cat==='🏯'?'selected':''}>🏯 CASTLE / SHRINE</option>
+                <option value="🏍️" ${memoData.cat==='🏍️'?'selected':''}>🏍️ VIEWPOINT / PASS</option>
+                <option value="⛴️" ${memoData.cat==='⛴️'?'selected':''}>⛴️ FERRY PORT</option>
+                <option value="🏨" ${memoData.cat==='🏨'?'selected':''}>🏨 HOTEL / CAMP</option>
+              </select>
+              <input type="text" id="memo_${key}" value="${(memoData.text || '').replace(/"/g, '&quot;')}" placeholder="MEMO..." style="margin-bottom:4px; padding:4px;">
+              <div class="inline-row" style="margin-bottom:0;">
+                <button type="button" class="btn" style="padding:5px; margin:0; flex:1;" onclick="saveSpotMemo('${key}', ${group.lat}, ${group.lon})">💾 SAVE</button>
+                <button type="button" class="btn btn-sub" style="padding:5px; margin:0; width:auto;" onclick="ignoreSpot('${group.spotKey}')" title="HIDE SPOT">🚫</button>
+              </div>
+            </div>
+            <a href="${gmapUrl}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a>
+          </div>
+        `;
+        marker.bindPopup(popupHtml);
+        marker.addTo(visitsLayer);
+      });
+
+      // Extreme Points List
+      let extremeHtml = '';
+      if (extremes.north.lat > -90) {
+        const exItems = [
+          { label: '⬆️ NORTH', data: extremes.north },
+          { label: '⬇️ SOUTH', data: extremes.south },
+          { label: '➡️ EAST', data: extremes.east },
+          { label: '⬅️ WEST', data: extremes.west }
+        ];
+        exItems.forEach(item => {
+          const pName = getPrefName(item.data.lat, item.data.lon) || 'RECORD';
+          extremeHtml += `<div class="rank-item">
+            <div class="rank-main" onclick="window.mapObj.setView([${item.data.lat}, ${item.data.lon}], 13); if(window.innerWidth<=768)toggleSidebar(false);">
+              <span class="rank-label"><strong>${item.label}</strong> (${pName})</span>
+              <span class="rank-val">${item.data.date}</span>
+            </div>
+            <button type="button" class="btn-icon" onclick="highlightRouteByDate('${item.data.date}')" data-tip-title="SHOW ROUTE" data-tip="この極点に到達した日の走行ルートを地図上にハイライト表示します。">🛣️</button>
+            <button type="button" class="btn-icon" onclick="ignoreSpot('${item.data.key}')" data-tip-title="EXCLUDE SPOT" data-tip="この地点を極点および最遠到達ランキングの集計対象から除外します。">🚫</button>
+          </div>`;
+          if (showExtreme && !selectedPrefFilter) {
+            const cIcon = L.divIcon({ className: 'crown-marker', html: '👑', iconSize: [28, 28], iconAnchor: [14, 14] });
+            L.marker([item.data.lat, item.data.lon], { icon: cIcon, zIndexOffset: 900 })
+              .bindPopup(`<div class="popup-content"><div class="popup-title">👑 ${item.label} (${pName})</div><div>DATE: ${item.data.date}</div><div class="inline-row" style="margin-top:6px;"><button type="button" class="btn" style="padding:4px; margin:0; flex:1;" onclick="highlightRouteByDate('${item.data.date}')">🛣️ ROUTE</button><button type="button" class="btn btn-sub" style="padding:4px; margin:0; width:auto;" onclick="ignoreSpot('${item.data.key}')">🚫</button></div><a href="https://www.google.com/maps?q=${item.data.lat},${item.data.lon}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a></div>`)
+              .addTo(extremeLayer);
+          }
+        });
+      }
+      document.getElementById('extremeList').innerHTML = extremeHtml || '<p class="note">NO DATA</p>';
+
+      if (selectedPrefFilter) {
+        if (prefPinBounds.length > 0) {
+          map.fitBounds(prefPinBounds, { padding: [50, 50], maxZoom: 12 });
+        } else {
+          const targetPrefObj = PREFS.find(p => p.name === selectedPrefFilter);
+          if (targetPrefObj) {
+            map.fitBounds([[targetPrefObj.minLat, targetPrefObj.minLon], [targetPrefObj.maxLat, targetPrefObj.maxLon]]);
+          }
+        }
+      } else if (allBounds.length > 0) {
+        map.fitBounds(allBounds);
+      }
+
+      // 47 Prefectures Summary & Interactive Filter
+      let visitedPrefCount = 0;
+      let stayPrefCount = 0;
+      let eastJapanCount = 0;
+      let westJapanCount = 0;
+      const regionVisited = { HOKKAIDO: 0, TOHOKU: 0, KANTO: 0, CHUBU: 0, KINKI: 0, CHUGOKU: 0, SHIKOKU: 0, KYUSHU: 0, OKINAWA: 0 };
+      let prefHtml = '';
+      PREFS.forEach(p => {
+        const st = prefStats[p.name];
+        const passDaysCount = st.passDays.size;
+        const isReached = (st.stay > 0 || st.visit > 0 || passDaysCount > 0);
+        if (isReached) {
+          visitedPrefCount++;
+          regionVisited[p.reg]++;
+          if (p.side === "EAST") eastJapanCount++;
+          else westJapanCount++;
+        }
+        if (st.stay > 0) stayPrefCount++;
+
+        let cls = 'pref-badge';
+        if (st.stay > 0) cls += ' stayed';
+        else if (st.visit > 0) cls += ' visited';
+        else if (passDaysCount > 0) cls += ' passed';
+        if (selectedPrefFilter === p.name) cls += ' selected-pref';
+
+        const tipDesc = `宿泊: ${st.stay}回 ／ 立ち寄り: ${st.visit}回 ／ 通過・走行: ${passDaysCount}日<br><span style='color:var(--p-cyan);'>※クリックでこの県のピンのみを地図に表示します</span>`;
+        prefHtml += `<div class="${cls}" data-tip-title="${p.name}" data-tip="${tipDesc}" onmouseenter="showPrefDetail('${p.name}', ${st.stay}, ${st.visit}, ${passDaysCount})" onclick="filterByPref('${p.name}', ${st.stay}, ${st.visit}, ${passDaysCount})">${p.name}</div>`;
+      });
+      document.getElementById('pref-summary').textContent = `${visitedPrefCount} / 47 (${Math.round(visitedPrefCount/47*100)}%)`;
+      document.getElementById('pref-list').innerHTML = prefHtml;
+
+      const totalTimeDist = Math.max(distDay + distEve + distNight, 1);
+      const pDay = Math.round(distDay / totalTimeDist * 100);
+      const pEve = Math.round(distEve / totalTimeDist * 100);
+      const pNight = Math.max(0, 100 - pDay - pEve);
+      document.getElementById('timeOfDayBar').innerHTML = `
+        <div style="display:flex; height:16px; border:2px solid #fff; overflow:hidden; margin-bottom:6px; transform:skewX(-8deg);">
+          <div style="width:${pDay}%; background:var(--p-yellow);"></div>
+          <div style="width:${pEve}%; background:var(--p-cyan);"></div>
+          <div style="width:${pNight}%; background:var(--p-red);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.74rem; white-space:nowrap;">
+          <span style="color:var(--p-yellow); font-weight:800;">☀️ DAY: ${pDay}%</span>
+          <span style="color:var(--p-cyan); font-weight:800;">🌆 EVE: ${pEve}%</span>
+          <span style="color:var(--p-red); font-weight:800;">🌙 NIGHT: ${pNight}%</span>
+        </div>
+      `;
+
+      // Longest Run Top 10
+      const sortedSessions = Object.entries(sessionDistance).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      let daysHtml = '';
+      sortedSessions.forEach(([sKey, dist], i) => {
+        const label = sessionLabels[sKey] || sKey;
+        daysHtml += `<div class="rank-item">
+          <div class="rank-main" onclick="highlightSession('${sKey}', '${label}')">
+            <span class="rank-label"><span class="rank-badge">#${i+1}</span>${label}</span>
+            <span class="rank-val">${Math.round(dist).toLocaleString()} km</span>
+          </div>
+          <button type="button" class="btn-icon" onclick="ignoreDay('${sKey}')" data-tip-title="EXCLUDE SESSION" data-tip="位置情報の誤記録などにより距離が異常な場合、このセッションを集計・ランキングから除外します。">🚫</button>
+        </div>`;
+      });
+      document.getElementById('longestDaysList').innerHTML = daysHtml || '<p class="note">NO DATA</p>';
+
+      // Farthest Reach Top 5
+      const farthestCandidates = [];
+      Object.values(recordSpotGroups).forEach(g => {
+        if (ignoredSpots[g.spotKey]) return;
+        const distFromHome = homeCoords ? calcDistanceKm(homeCoords[0], homeCoords[1], g.lat, g.lon) : 0;
+        const pName = getPrefName(g.lat, g.lon) || (isInsideJapan(g.lat, g.lon) ? 'JAPAN' : 'OVERSEAS');
+        farthestCandidates.push({ spotKey: g.spotKey, lat: g.lat, lon: g.lon, dist: distFromHome, date: g.lastDate, pref: pName });
+      });
+      farthestCandidates.sort((a, b) => b.dist - a.dist);
+
+      const uniqueFarthest = [];
+      const seenAreas = new Set();
+      for (const item of farthestCandidates) {
+        const areaKey = `${item.lat.toFixed(1)}_${item.lon.toFixed(1)}`;
+        if (!seenAreas.has(areaKey)) {
+          seenAreas.add(areaKey);
+          uniqueFarthest.push(item);
+          if (uniqueFarthest.length >= 5) break;
+        }
+      }
+      let farHtml = '';
+      uniqueFarthest.forEach((item, i) => {
+        const dStr = item.date.substring(0, 10).replace(/\//g, '-');
+        farHtml += `<div class="rank-item">
+          <div class="rank-main" onclick="window.mapObj.setView([${item.lat}, ${item.lon}], 13); if(window.innerWidth<=768)toggleSidebar(false);">
+            <span class="rank-label"><span class="rank-badge">#${i+1}</span>${item.pref} (${dStr})</span>
+            <span class="rank-val">${Math.round(item.dist).toLocaleString()} km</span>
+          </div>
+          <button type="button" class="btn-icon" onclick="highlightRouteByDate('${dStr}')" data-tip-title="SHOW ROUTE" data-tip="この地点に到達した日の走行ルートをハイライト表示します。">🛣️</button>
+          <button type="button" class="btn-icon" onclick="ignoreSpot('${item.spotKey}')" data-tip-title="EXCLUDE SPOT" data-tip="航空機移動など対象外にしたい地点をランキングから除外します。">🚫</button>
+        </div>`;
+      });
+      document.getElementById('farthestSpotsList').innerHTML = farHtml || '<p class="note">NO DATA</p>';
+
+      function calcMaxStreak(dateSet) {
+        const arr = Array.from(dateSet).sort();
+        let maxS = 0, curS = 0, prevT = null;
+        arr.forEach(dStr => {
+          const t = new Date(dStr).getTime();
+          if (prevT !== null && Math.round((t - prevT) / 86400000) === 1) curS++;
+          else curS = 1;
+          if (curS > maxS) maxS = curS;
+          prevT = t;
+        });
+        return maxS;
+      }
+      const maxAwayStreak = calcMaxStreak(awayDatesSet);
+
+      const maxDayDist = sortedSessions.length > 0 ? Math.round(sortedSessions[0][1]) : 0;
+      const maxFarDist = uniqueFarthest.length > 0 ? Math.round(uniqueFarthest[0].dist) : 0;
+      const islandsCount = (regionVisited.HOKKAIDO > 0 ? 1 : 0) +
+                           ((regionVisited.KANTO + regionVisited.TOHOKU + regionVisited.CHUBU + regionVisited.KINKI + regionVisited.CHUGOKU) > 0 ? 1 : 0) +
+                           (regionVisited.SHIKOKU > 0 ? 1 : 0) +
+                           (regionVisited.KYUSHU > 0 ? 1 : 0);
+      const dRound = Math.round(totalDist);
+      const nightDistRound = Math.round(distNight);
+      const winterDistRound = Math.round(distWinter);
+      const totalActiveDays = activeDaysSet.size;
+
+      const honshu4Count = capeReached.oma + capeReached.todoga + capeReached.shiono + capeReached.bishano;
+      const mainland4Count = capeReached.soya + capeReached.nosappu + capeReached.sata + capeReached.kouzaki;
+
+      /* =========================================================================
+       * === [CUSTOMIZE AREA] TROPHY DEFINITIONS (61 ITEMS) ===
+       * - title  : Trophy Name (Supports both Japanese and English)
+       * - cond   : Unlock Requirement (Displayed in bright text on top)
+       * - flavor : Flavor Text / Comment (Displayed in muted gray text below)
+       * ========================================================================= */
+      const trophies = [
+        // 1. Total Distance (9 Tiers)
+        { title: "🛤️ EURASIA EXPRESS", cond: "累計走行距離 10,267km以上", flavor: "シベリア鉄道を超え、ユーラシア大陸を横断する距離に到達！", cur: dRound, max: 10267, unit: "km" },
+        { title: "🐉 GREAT WALL RUNNER", cond: "累計走行距離 21,196km以上", flavor: "万里の長城の全長を踏破。果てしない旅路はまだ序章にすぎない。", cur: dRound, max: 21196, unit: "km" },
+        { title: "🌍 AROUND THE WORLD", cond: "累計走行距離 40,075km以上", flavor: "赤道40,075kmをぐるっとひと回り。最初の世界一周だ！", cur: dRound, max: 40075, unit: "km" },
+        { title: "🏅 CENTURY RIDER", cond: "累計走行距離 100,000km以上", flavor: "オドメーターは10万kmの大台へ。ここからが本当のベテラン領域。", cur: dRound, max: 100000, unit: "km" },
+        { title: "🪐 5X EARTH ORBIT", cond: "累計走行距離 200,000km以上", flavor: "地球5周分を走破。走ることを止められない生粋のロードジャンキー。", cur: dRound, max: 200000, unit: "km" },
+        { title: "⚡ LIGHTSPEED 1 SEC", cond: "累計走行距離 300,000km以上", flavor: "光が1秒間に進む距離（約30万km）をタイヤの回転だけで繋ぎ止めた。", cur: dRound, max: 300000, unit: "km" },
+        { title: "🌕 MOON TRAVELER", cond: "累計走行距離 384,400km以上", flavor: "月までぶっ飛べ！大気圏すら突破する圧倒的マイレージ。", cur: dRound, max: 384400, unit: "km" },
+        { title: "🌌 HALF MILLION", cond: "累計走行距離 500,000km以上", flavor: "累計50万km。もはや道そのものと一体化した生きる伝説。", cur: dRound, max: 500000, unit: "km" },
+        { title: "👑 MILLION LEGEND", cond: "累計走行距離 1,000,000km以上", flavor: "前人未到の100万km。月と地球を往復してなお余りある神話の領域へ。", cur: dRound, max: 1000000, unit: "km" },
+
+        // 2. Prefectures & Regions (10 Tiers)
+        { title: "🔰 10 PREFECTURES", cond: "10都道府県以上に到達", flavor: "近隣の県境を越えて、広大な日本列島へ飛び出した第一歩。", cur: visitedPrefCount, max: 10, unit: "" },
+        { title: "🗺️ HALF JAPAN", cond: "24都道府県以上に到達", flavor: "日本の半分はもう庭みたいなもの。", cur: visitedPrefCount, max: 24, unit: "" },
+        { title: "🗾 JAPAN EXPLORER", cond: "35都道府県以上に到達", flavor: "未踏の県を探す方が難しくなってきた。", cur: visitedPrefCount, max: 35, unit: "" },
+        { title: "👑 ALL JAPAN MASTER", cond: "全47都道府県すべてに到達", flavor: "日本列島、完全制覇。すべての道が君の記憶に繋がっている。", cur: visitedPrefCount, max: 47, unit: "" },
+        { title: "🌅 EAST JAPAN CLEAR", cond: "東日本エリア全20道県に到達", flavor: "北の大地からアルプスまで、東の空はすべて制した。", cur: eastJapanCount, max: 20, unit: "" },
+        { title: "🌇 WEST JAPAN CLEAR", cond: "西日本エリア全27府県に到達", flavor: "古都の風も南国の太陽も、西の果てまで駆け抜けた。", cur: westJapanCount, max: 27, unit: "" },
+        { title: "❄️ NORTHERN FRONTIER", cond: "北海道＋東北6県の計7道県すべてに到達", flavor: "まっすぐな地平線とみちのくのワインディングを愛する者。", cur: regionVisited.HOKKAIDO + regionVisited.TOHOKU, max: 7, unit: "" },
+        { title: "⛩️ CENTRAL & WEST", cond: "中部9県＋近畿7府県の計16府県すべてに到達", flavor: "日本の大動脈と歴史の中心地を縦横無尽に駆け巡る。", cur: regionVisited.CHUBU + regionVisited.KINKI, max: 16, unit: "" },
+        { title: "🌊 SOUTHERN WIND", cond: "中国5県＋四国4県＋九州7県の計16県すべてに到達", flavor: "瀬戸内の多島美を越え、火の国・南国の風を全身に浴びて。", cur: regionVisited.CHUGOKU + regionVisited.SHIKOKU + regionVisited.KYUSHU, max: 16, unit: "" },
+        { title: "⛴️ FOUR MAIN ISLANDS", cond: "本州・北海道・四国・九州の4島すべてに到達", flavor: "橋を渡り、海を越え、日本の4大島すべてにタイヤ跡を刻め！", cur: islandsCount, max: 4, unit: "" },
+
+        // 3. Single Run Distance (5 Tiers)
+        { title: "💨 WEEKEND CRUISER", cond: "1回（1日）の連続走行 100km以上", flavor: "風を感じて100km。最高の休日はいつだってここから始まる。", cur: maxDayDist, max: 100, unit: "km" },
+        { title: "⚡ SPRINTER", cond: "1回（1日）の連続走行 300km以上", flavor: "ちょっとそこまで300km。本格的な旅のウォーミングアップ。", cur: maxDayDist, max: 300, unit: "km" },
+        { title: "🏍️ IRON RIDER", cond: "1回（1日）の連続走行 500km以上", flavor: "日帰り500kmは当たり前？鋼の体力を持つロングライダー。", cur: maxDayDist, max: 500, unit: "km" },
+        { title: "🔥 CANNONBALL", cond: "1回（1日）の連続走行 800km以上", flavor: "朝から晩までスロットルを開け続けた、狂気と情熱の800km。", cur: maxDayDist, max: 800, unit: "km" },
+        { title: "🚀 HYPER SONIC", cond: "1回（1日）の連続走行 1,000km以上", flavor: "1日1,000km突破。人間の限界を超えた伝説のキャノンボーラー！", cur: maxDayDist, max: 1000, unit: "km" },
+
+        // 4. Farthest Distance from Home (5 Tiers)
+        { title: "🧭 100KM RADIUS", cond: "自宅拠点から直線距離 100km先へ到達", flavor: "いつもの街を抜け出して、隣の空の下へ。", cur: maxFarDist, max: 100, unit: "km" },
+        { title: "🏔️ 300KM EXPEDITION", cond: "自宅拠点から直線距離 300km先へ到達", flavor: "言葉や景色が少しずつ変わり始める、300km先の旅路。", cur: maxFarDist, max: 300, unit: "km" },
+        { title: "📡 LONG RANGE", cond: "自宅拠点から直線距離 500km先へ到達", flavor: "日常を置き去りにして、500km先の見知らぬ空の下へ。", cur: maxFarDist, max: 500, unit: "km" },
+        { title: "🌌 FAR HORIZON", cond: "自宅拠点から直線距離 800km先へ到達", flavor: "はるか800km彼方。もう簡単には帰れない場所まで来た。", cur: maxFarDist, max: 800, unit: "km" },
+        { title: "🌠 EDGE OF JAPAN", cond: "自宅拠点から直線距離 1,000km先へ到達", flavor: "地図の端っこにピンを刺せ！1,000km先の最果ての地へ。", cur: maxFarDist, max: 1000, unit: "km" },
+
+        // 5. Overnight Stays (6 Tiers)
+        { title: "🏨 WANDERER", cond: "15以上の都道府県で宿泊を記録", flavor: "ヘルメットを脱いで見知らぬ街で眠る、自由気ままな放浪者。", cur: stayPrefCount, max: 15, unit: "" },
+        { title: "⛺ 50 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計50泊以上", flavor: "旅先の宿やキャンプ場こそが、俺の第二のマイホーム。", cur: totalStayCount, max: 50, unit: "" },
+        { title: "🛌 100 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計100泊以上", flavor: "100の夜を旅先で越えた。枕が変わってもぐっすり眠れる才能。", cur: totalStayCount, max: 100, unit: "" },
+        { title: "🏮 300 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計300泊以上", flavor: "ほぼ1年分を外で過ごした計算。旅慣れた背中に哀愁が漂う。", cur: totalStayCount, max: 300, unit: "" },
+        { title: "🌌 500 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計500泊以上", flavor: "500の星空と朝焼けを知る、真のノマドトラベラー。", cur: totalStayCount, max: 500, unit: "" },
+        { title: "👑 1,000 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計1,000泊以上", flavor: "千夜一夜物語。日本中のあらゆる街に想い出の宿がある。", cur: totalStayCount, max: 1000, unit: "" },
+
+        // 6. Consecutive Nights Away (4 Tiers)
+        { title: "🎒 3-DAY TOURER", cond: "3日連続（3泊以上）の外泊・連泊を達成", flavor: "3日以上家に帰らない本気のツーリング。旅はここからが本番だ。", cur: maxAwayStreak, max: 3, unit: "d" },
+        { title: "🏕️ WEEK-LONG VOYAGER", cond: "7日連続（7泊以上）の外泊・連泊を達成", flavor: "1週間の大冒険。曜日感覚が消えた頃、本当の自由がやってくる。", cur: maxAwayStreak, max: 7, unit: "d" },
+        { title: "🦅 HALF-MONTH NOMAD", cond: "15日連続（15泊以上）の外泊・連泊を達成", flavor: "半月におよぶ長期遠征。相棒のバイクが生活のすべてになる。", cur: maxAwayStreak, max: 15, unit: "d" },
+        { title: "🌍 MONTH-LONG DRIFTER", cond: "30日連続（30泊以上）の外泊・連泊を達成", flavor: "1ヶ月間、風と共に生きる。日常を完全に超越した孤高の旅人。", cur: maxAwayStreak, max: 30, unit: "d" },
+
+        // 7. Total Visits (8 Tiers)
+        { title: "📍 100 VISITS", cond: "自宅以外の立ち寄り履歴 累計100回以上", flavor: "100回のストップ＆ゴー。地図の上に思い出のピンが増え始めた。", cur: totalRawVisitCount, max: 100, unit: "" },
+        { title: "📍 300 VISITS", cond: "自宅以外の立ち寄り履歴 累計300回以上", flavor: "道の駅も隠れた名店も、気になる場所には迷わずウインカーを出す。", cur: totalRawVisitCount, max: 300, unit: "" },
+        { title: "📍 500 VISITS", cond: "自宅以外の立ち寄り履歴 累計500回以上", flavor: "500箇所の寄り道。目的地までのプロセスこそが旅の醍醐味だ。", cur: totalRawVisitCount, max: 500, unit: "" },
+        { title: "🎯 1,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計1,000回以上", flavor: "立ち寄った数だけドラマがある。千の景色を見てきた瞳。", cur: totalRawVisitCount, max: 1000, unit: "" },
+        { title: "🎯 3,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計3,000回以上", flavor: "3,000回のチェックイン。日本中のあらゆる街角に足跡が残る。", cur: totalRawVisitCount, max: 3000, unit: "" },
+        { title: "🌟 5,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計5,000回以上", flavor: "圧倒的な行動力。5,000ものスポットを巡り尽くした生きたガイドブック。", cur: totalRawVisitCount, max: 5000, unit: "" },
+        { title: "💎 10,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計10,000回以上", flavor: "1万回の立ち寄り達成！あなたのタイムラインはもはや国の重要文化財。", cur: totalRawVisitCount, max: 10000, unit: "" },
+        { title: "👑 30,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計30,000回以上", flavor: "3万回の軌跡。人生のすべてをフィールドワークに捧げた究極の探求者。", cur: totalRawVisitCount, max: 30000, unit: "" },
+
+        // 8. Midnight Distance (5 Tiers)
+        { title: "🌙 NIGHT WALKER 100", cond: "深夜帯（22:00〜翌6:00）の累計走行 100km以上", flavor: "寝静まった街を抜け、夜の空気を切り裂いて走る心地よさ。", cur: nightDistRound, max: 100, unit: "km" },
+        { title: "🦉 NIGHT RIDER 500", cond: "深夜帯（22:00〜翌6:00）の累計走行 500km以上", flavor: "ヘッドライトが照らす数メートル先だけを信じて、真夜中の国道へ。", cur: nightDistRound, max: 500, unit: "km" },
+        { title: "🌌 MIDNIGHT PHANTOM", cond: "深夜帯（22:00〜翌6:00）の累計走行 1,000km以上", flavor: "誰もいない深夜のハイウェイは俺だけのステージ。1,000kmの夜行録。", cur: nightDistRound, max: 1000, unit: "km" },
+        { title: "🦇 LORD OF DARKNESS", cond: "深夜帯（22:00〜翌6:00）の累計走行 3,000km以上", flavor: "太陽など必要ない。闇夜を3,000km駆け抜けた真のナイトライダー！", cur: nightDistRound, max: 3000, unit: "km" },
+        { title: "🌑 ETERNAL NIGHT", cond: "深夜帯（22:00〜翌6:00）の累計走行 10,000km以上", flavor: "真夜中だけで1万kmを走破。月光と星屑を友とする夜の支配者。", cur: nightDistRound, max: 10000, unit: "km" },
+
+        // 9. Seasons & Winter Distance (3 Tiers)
+        { title: "🌸 4 SEASONS RIDER", cond: "春・夏・秋・冬の全4シーズンで走行を記録", flavor: "桜吹雪も、夏の入道雲も、紅葉も、冬の澄んだ空気もすべて走った。", cur: seasonsSet.size, max: 4, unit: "" },
+        { title: "⛄ WINTER IRONMAN", cond: "冬（12月〜2月）の累計走行距離 3,000km以上", flavor: "凍てつく北風も氷点下の朝も関係ない。冬に3,000kmを走る熱き魂！", cur: winterDistRound, max: 3000, unit: "km" },
+        { title: "🧊 ABSOLUTE ZERO", cond: "冬（12月〜2月）の累計走行距離 10,000km以上", flavor: "厳冬期だけで累計1万km。寒さすら快感に変える不屈のアイアンハート。", cur: winterDistRound, max: 10000, unit: "km" },
+
+        // 10. Honshu 4 Extremes -> Mainland 4 Extremes (10 Tiers)
+        { title: "⬆️ CAPE OMA", cond: "本州最北端・大間崎（青森県）に到達", flavor: "津軽海峡の荒波とマグロの街。ここが本州のてっぺんだ！", cur: capeReached.oma, max: 1, unit: "" },
+        { title: "➡️ CAPE TODOGASAKI", cond: "本州最東端・魹ヶ崎（岩手県）に到達", flavor: "三陸のリアス海岸の奥深く、選ばれし者だけが辿り着ける本州最東の地。", cur: capeReached.todoga, max: 1, unit: "" },
+        { title: "⬇️ CAPE SHIONOMISAKI", cond: "本州最南端・潮岬（和歌山県）に到達", flavor: "地球が丸く見える水平線。太平洋に突き出した本州最南端の岬！", cur: capeReached.shiono, max: 1, unit: "" },
+        { title: "⬅️ CAPE BISHANOHANA", cond: "本州最西端・毘沙ノ鼻（山口県）に到達", flavor: "日本海の荒波に削られた断崖。本州を西の果てまで走り切った証。", cur: capeReached.bishano, max: 1, unit: "" },
+        { title: "👑 HONSHU 4 EXTREMES", cond: "本州四端（大間・魹ヶ崎・潮岬・毘沙ノ鼻）すべてに到達", flavor: "本州の東西南北すべてを制覇！果てしなき本州一周のグランドスラム。", cur: honshu4Count, max: 4, unit: "" },
+
+        { title: "⬆️ CAPE SOYA", cond: "本土最北端・宗谷岬（北海道）に到達", flavor: "北緯45度31分22秒。風雪を越え、ついに辿り着いた日本最北の地！", cur: capeReached.soya, max: 1, unit: "" },
+        { title: "➡️ CAPE NOSAPPU", cond: "本土最東端・納沙布岬（北海道）に到達", flavor: "日本で一番早く朝日が昇る、はるかなる東の果てへ。", cur: capeReached.nosappu, max: 1, unit: "" },
+        { title: "⬇️ CAPE SATA", cond: "本土最南端・佐多岬（鹿児島県）に到達", flavor: "ソテツ揺れる亜熱帯の風。本土の南の終着点に立つ！", cur: capeReached.sata, max: 1, unit: "" },
+        { title: "⬅️ CAPE KOUZAKI", cond: "本土最西端・神崎鼻（長崎県）に到達", flavor: "五島灘に沈む夕陽を見送る、本土最西端の静かなる岬。", cur: capeReached.kouzaki, max: 1, unit: "" },
+        { title: "👑 MAINLAND 4 EXTREMES", cond: "本土四端（宗谷・納沙布・佐多・神崎鼻）すべてに到達", flavor: "東西南北、日本の端っこをすべて繋いだ！すべての旅人が憧れる大偉業。", cur: mainland4Count, max: 4, unit: "" }
+      ];
+      /* ========================================================================= */
+
+      let unlockedCount = 0;
+      document.getElementById('trophyList').innerHTML = trophies.map(t => {
+        const ok = t.cur >= t.max;
+        if (ok) unlockedCount++;
+        const pct = Math.min(100, Math.round((t.cur / t.max) * 100));
+        const tipHtml = `<div class='tt-cond'>${t.cond}</div><div class='tt-flavor'>${t.flavor}</div>`;
+        return `
+          <div class="trophy-card ${ok ? 'unlocked' : ''}" data-tip-title="${t.title}" data-tip="${tipHtml}">
+            <div class="trophy-title">${ok ? '🃏' : '🔒'} ${t.title}</div>
+            <div class="trophy-prog-bg"><div class="trophy-prog-fill" style="width:${pct}%"></div></div>
+            <div class="trophy-stat">
+              <span>${t.cur.toLocaleString()}/${t.max.toLocaleString()}${t.unit}</span>
+              <span class="trophy-pct">${pct}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('trophySummary').textContent = `🃏 UNLOCKED: ${unlockedCount} / ${trophies.length}`;
+
+      // Yearly Log Rendering
+      let html = `<div class="box">
+        <div class="section-header-row">
+          <div class="section-title">📊 TOTAL DISTANCE</div>
+        </div>
+        <div class="total-dist-wrap">
+          <span style="font-size:0.76rem; font-weight:800; color:#ccc;">ACTIVE: ${totalActiveDays.toLocaleString()} DAYS</span>
+          <span class="stat-highlight">${dRound.toLocaleString()} km</span>
+        </div>
+        <div class="note">ODOMETER FACTOR: ×${roadFactor}</div>
+      </div><div class="box">
+        <div class="section-header-row">
+          <div class="section-title">📅 YEARLY LOG</div>
+          <span class="help-mark" data-tip-title="YEARLY LOG" data-tip="年ごとの走行距離と立ち寄り回数の集計です。各年の行をクリックすると、表示期間（TARGET PERIOD）がその年のみに切り替わります。">?</span>
+        </div>
+        <table><tr><th>YEAR</th><th>DISTANCE</th><th>VISITS</th></tr>`;
+      Object.keys(yearlyDistance).sort().reverse().forEach(y => {
+        const d = Math.round(yearlyDistance[y]);
+        const isSelectedYear = (filterValue === String(y));
+        html += `<tr class="year-row ${isSelectedYear ? 'active-year' : ''}" onclick="selectYearFromLog('${y}')" title="Click to filter ${y}">
+          <td>${isSelectedYear ? '▶ ' : ''}${y}</td>
+          <td>${d.toLocaleString()} km</td>
+          <td>${yearlyVisits[y].toLocaleString()}</td>
+        </tr>`;
+      });
+      html += `</table></div>`;
+      document.getElementById('stats').innerHTML = html;
+    }
+
+    // Route Timelapse Playback
+    window.startTimelapse = function() {
+      if (activePlaybackPoints.length < 2) {
+        alert('タイムラインJSONファイルを先に読み込んでください。');
+        return;
+      }
+      stopTimelapse();
+      if (window.innerWidth <= 768) toggleSidebar(false);
+
+      document.getElementById('btnPlay').style.display = 'none';
+      document.getElementById('btnStop').style.display = 'block';
+
+      const speed = parseInt(document.getElementById('playSpeed').value, 10);
+      let idx = 0;
+      const bikeIcon = L.divIcon({ className: 'bike-marker', html: '🏍️', iconSize: [30, 30], iconAnchor: [15, 15] });
+      const bikeMarker = L.marker(activePlaybackPoints[0].pt, { icon: bikeIcon, zIndexOffset: 1500 }).addTo(animLayer);
+      const trailLine = L.polyline([], { color: '#ffe600', weight: 5, opacity: 0.95, renderer: canvasRenderer }).addTo(animLayer);
+
+      animTimer = setInterval(() => {
+        for (let s = 0; s < speed; s++) {
+          if (idx >= activePlaybackPoints.length) {
+            stopTimelapse();
+            document.getElementById('playStatus').textContent = "🃏 PLAYBACK COMPLETED";
+            return;
+          }
+          const item = activePlaybackPoints[idx];
+          bikeMarker.setLatLng(item.pt);
+          trailLine.addLatLng(item.pt);
+          if (idx % Math.max(1, speed) === 0) map.panTo(item.pt, { animate: true });
+          if (item.time) document.getElementById('playStatus').textContent = `🏍️ ${formatDateTime(item.time)}`;
+          idx++;
+        }
+      }, 50);
+    };
+
+    window.stopTimelapse = function() {
+      if (animTimer) { clearInterval(animTimer); animTimer = null; }
+      animLayer.clearLayers();
+      document.getElementById('btnPlay').style.display = 'block';
+      document.getElementById('btnStop').style.display = 'none';
+      document.getElementById('playStatus').textContent = "";
+    };
+
+    // Robust Exif Photo Mapping (Supports both Rational objects and raw Numbers)
+    function exifCoordToDeg(arr) {
+      if (!arr || arr.length < 3) return null;
+      const toVal = (v) => {
+        if (typeof v === 'number') return v;
+        if (v && v.numerator !== undefined && v.denominator !== undefined) {
+          return v.denominator !== 0 ? (v.numerator / v.denominator) : 0;
+        }
+        return parseFloat(v) || 0;
+      };
+      const d = toVal(arr[0]);
+      const m = toVal(arr[1]);
+      const s = toVal(arr[2]);
+      if (isNaN(d) || isNaN(m) || isNaN(s)) return null;
+      return d + (m / 60) + (s / 3600);
+    }
+
+    window.clearMappedPhotos = function() {
+      photosLayer.clearLayers();
+      document.getElementById('photoInput').value = '';
+      document.getElementById('photoStatus').textContent = '';
+      document.getElementById('clearPhotosBtn').style.display = 'none';
+    };
+
+    document.getElementById('photoInput').addEventListener('change', function(e) {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+      if (typeof EXIF === 'undefined') {
+        document.getElementById('photoStatus').textContent = "EXIF LIBRARY LOAD ERROR";
+        return;
+      }
+
+      let processed = 0;
+      let addedCount = 0;
+      const photoBounds = [];
+      document.getElementById('photoStatus').textContent = "SCANNING PHOTOS…⏳";
+
+      files.forEach(file => {
+        EXIF.getData(file, function() {
+          processed++;
+          const latArr = EXIF.getTag(this, "GPSLatitude");
+          const lonArr = EXIF.getTag(this, "GPSLongitude");
+          const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+          const lonRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
+          const dateTime = EXIF.getTag(this, "DateTimeOriginal") || "";
+
+          const degLat = exifCoordToDeg(latArr);
+          const degLon = exifCoordToDeg(lonArr);
+
+          if (degLat !== null && degLon !== null && !isNaN(degLat) && !isNaN(degLon)) {
+            const lat = degLat * (String(latRef).toUpperCase().startsWith("S") ? -1 : 1);
+            const lon = degLon * (String(lonRef).toUpperCase().startsWith("W") ? -1 : 1);
+
+            if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && (lat !== 0 || lon !== 0)) {
+              const imgUrl = URL.createObjectURL(file);
+              const icon = L.divIcon({
+                className: '',
+                html: `<img src="${imgUrl}" class="photo-marker" style="width:46px; height:46px;">`,
+                iconSize: [46, 46], iconAnchor: [23, 23]
+              });
+
+              const m = L.marker([lat, lon], { icon: icon, zIndexOffset: 1400 });
+              m.bindPopup(`<div class="popup-content" style="text-align:center;"><img src="${imgUrl}" style="max-width:220px; max-height:220px; border:2px solid #fff; object-fit:contain;"><br><strong style="color:var(--p-yellow);">📸 ${file.name}</strong><br><span style="font-size:0.75rem; color:#ccc;">${dateTime}</span></div>`);
+              m.addTo(photosLayer);
+              photoBounds.push([lat, lon]);
+              addedCount++;
+            }
+          }
+
+          if (processed === files.length) {
+            if (addedCount > 0) {
+              document.getElementById('photoStatus').textContent = `🃏 ${addedCount} / ${files.length} PHOTOS MAPPED`;
+              document.getElementById('clearPhotosBtn').style.display = 'block';
+              map.fitBounds(photoBounds, { padding: [50, 50], maxZoom: 14 });
+              if (window.innerWidth <= 768) toggleSidebar(false);
+            } else {
+              document.getElementById('photoStatus').textContent = "位置情報（GPS Exif）が含まれる写真が見つかりませんでした。";
+            }
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
