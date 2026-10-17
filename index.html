@@ -9,10 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,900;1,900&family=Noto+Sans+JP:wght@600;800;900&display=swap" rel="stylesheet">
-  <!-- Leaflet & Modern Exifr Library -->
+  <!-- Leaflet & Full Exifr Library -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
   <style>
     :root {
       --p-red: #e60012;
@@ -1183,13 +1183,21 @@
 
       <div class="box">
         <div class="section-header-row">
-          <div class="section-title">📸 PHOTO MAPPING (EXIF)</div>
+          <div class="section-title">📸 PHOTO MAPPING (EXIF &amp; SYNC)</div>
+          <span class="help-mark" data-tip-title="PHOTO MAPPING" data-tip="写真内のGPS座標（Exif）を解析して地図に配置します。万が一OSの仕様等でGPSが消去されている写真でも、撮影日時（または更新日時）からタイムライン上の該当位置を自動特定して配置します。">?</span>
         </div>
-        <label>SELECT PHOTOS <span class="help-mark" data-tip-title="PHOTO EXIF MAPPING" data-tip="GPS位置情報（Exif）が含まれる写真を選択すると、撮影地点にサムネイルマーカーを配置します。">?</span></label>
+
+        <label>1. PC / STANDARD SELECT</label>
         <input type="file" id="photoInput" accept="image/jpeg,image/jpg,image/heic,image/webp,.jpg,.jpeg" multiple>
+
+        <label style="margin-top:6px;">2. ANDROID / FILE MANAGER MODE</label>
+        <!-- accept属性を外すことでAndroidの強制フォトピッカー（GPS削除機能）を回避し、ファイルアプリを開けるようにする -->
+        <input type="file" id="photoRawInput" multiple style="display:none;">
+        <button type="button" class="btn btn-guide" style="margin-bottom:6px;" onclick="document.getElementById('photoRawInput').click()">📁 スマホでファイルアプリから直接選ぶ (GPS保持)</button>
+
         <div class="note" style="color:#d1d5db; background:#111; padding:6px 8px; border-left:3px solid var(--p-cyan); margin-bottom:6px;">
-          💡 <strong>スマートフォンでのご注意：</strong><br>
-          Androidの「写真を選択（ギャラリー）」から選ぶと、OSのプライバシー保護機能により位置情報が自動削除される場合があります。位置情報が検出されない場合は、ファイル選択画面で<strong>「フォルダ参照（またはファイルアプリ）」</strong>から元画像を選択してください。
+          ⚡ <strong>タイムライン自動シンクロ機能搭載：</strong><br>
+          写真にGPS情報が入っている場合はその正確な座標に配置し、もしスマホの仕様でGPSが消されていた場合でも、<strong>「写真の撮影日時」と「タイムラインの移動日時」を自動照合</strong>してルート上に配置します！
         </div>
         <button type="button" id="clearPhotosBtn" class="btn btn-sub" style="display:none; margin-top:4px;" onclick="clearMappedPhotos()">🗑️ CLEAR MAPPED PHOTOS</button>
         <div id="photoStatus" class="note" style="color:var(--p-yellow);"></div>
@@ -1398,6 +1406,7 @@
     let animLayer = L.layerGroup().addTo(map);
 
     let rawSegments = [];
+    let allTimelinePointsForPhotoSync = []; // 写真の撮影日時から座標を逆引きするための全タイムラインキャッシュ
     let allFilteredPlaybackPoints = [];
     let activePlaybackPoints = [];
     let sessionRoutesMap = {};
@@ -1545,7 +1554,6 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // Universal Coordinate Parser
     function parsePoint(pointInput) {
       if (!pointInput) return null;
       if (Array.isArray(pointInput) && pointInput.length === 2) {
@@ -1574,20 +1582,21 @@
       return null;
     }
 
-    // Universal Timeline Data Normalizer (Android, iOS, and Google Takeout JSON)
+    // Universal Timeline Data Normalizer
     function normalizeTimelineData(json) {
       let sourceArray = [];
       if (Array.isArray(json)) {
-        sourceArray = json; // iOS format
+        sourceArray = json;
       } else if (json && Array.isArray(json.semanticSegments)) {
-        sourceArray = json.semanticSegments; // Android format
+        sourceArray = json.semanticSegments;
       } else if (json && Array.isArray(json.timelineObjects)) {
-        sourceArray = json.timelineObjects; // Legacy Takeout format
+        sourceArray = json.timelineObjects;
       } else if (json && Array.isArray(json.rawSignals)) {
         sourceArray = json.rawSignals;
       }
 
       const normalized = [];
+      allTimelinePointsForPhotoSync = [];
 
       sourceArray.forEach(item => {
         if (!item) return;
@@ -1599,6 +1608,8 @@
           const startTime = pv.duration ? pv.duration.startTimestamp : null;
           const endTime = pv.duration ? pv.duration.endTimestamp : startTime;
           if (pt && startTime) {
+            const ms = new Date(startTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
             normalized.push({
               startTime: startTime,
               endTime: endTime,
@@ -1639,6 +1650,11 @@
             if (p2 && endTime) pathPts.push({ point: `${p2[0]}, ${p2[1]}`, time: endTime });
           }
           if (pathPts.length > 0 && startTime) {
+            pathPts.forEach(pp => {
+              const pt = parsePoint(pp.point);
+              const ms = new Date(pp.time).getTime();
+              if (pt && !isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
+            });
             normalized.push({ startTime: startTime, endTime: endTime, timelinePath: pathPts });
           }
           return;
@@ -1655,6 +1671,8 @@
           const locSource = top.placeLocation || item.visit.placeLocation || top;
           const pt = parsePoint(locSource);
           if (pt) {
+            const ms = new Date(startTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
             let semType = top.semanticType || item.visit.semanticType || "UNKNOWN";
             if (semType === "Inferred Home" || semType === "TYPE_HOME") semType = "HOME";
             normSeg.visit = {
@@ -1678,15 +1696,26 @@
               const offsetMin = parseFloat(pObj.durationMinutesOffsetFromStartTime);
               tStr = new Date(baseMs + offsetMin * 60000).toISOString();
             }
-            normPath.push({ point: `${pt[0]}, ${pt[1]}`, time: tStr || startTime });
+            const finalTime = tStr || startTime;
+            const ms = new Date(finalTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
+            normPath.push({ point: `${pt[0]}, ${pt[1]}`, time: finalTime });
           });
           if (normPath.length > 0) normSeg.timelinePath = normPath;
         } else if (item.activity) {
           const actPts = [];
           const sPt = parsePoint(item.activity.start);
           const ePt = parsePoint(item.activity.end);
-          if (sPt) actPts.push({ point: `${sPt[0]}, ${sPt[1]}`, time: startTime });
-          if (ePt) actPts.push({ point: `${ePt[0]}, ${ePt[1]}`, time: endTime });
+          if (sPt) {
+            const ms = new Date(startTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: sPt });
+            actPts.push({ point: `${sPt[0]}, ${sPt[1]}`, time: startTime });
+          }
+          if (ePt) {
+            const ms = new Date(endTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: ePt });
+            actPts.push({ point: `${ePt[0]}, ${ePt[1]}`, time: endTime });
+          }
           if (actPts.length > 0) normSeg.timelinePath = actPts;
         }
 
@@ -1695,6 +1724,7 @@
         }
       });
 
+      allTimelinePointsForPhotoSync.sort((a, b) => a.ms - b.ms);
       return normalized;
     }
 
@@ -2950,67 +2980,299 @@
       document.getElementById('playStatus').textContent = "";
     };
 
-    // High-Compatibility Exif Photo Mapping using exifr
+    // =========================================================================
+    // 📸 Deep Binary Exif Scanner + Timeline Timestamp Sync Engine
+    // =========================================================================
     window.clearMappedPhotos = function() {
       photosLayer.clearLayers();
       document.getElementById('photoInput').value = '';
+      document.getElementById('photoRawInput').value = '';
       document.getElementById('photoStatus').textContent = '';
       document.getElementById('clearPhotosBtn').style.display = 'none';
     };
 
-    document.getElementById('photoInput').addEventListener('change', async function(e) {
-      const files = Array.from(e.target.files);
-      if (files.length === 0) return;
-      if (typeof exifr === 'undefined') {
-        document.getElementById('photoStatus').textContent = "EXIF ENGINE LOAD ERROR";
-        return;
+    // Direct Binary JPEG Exif Scanner (Scans entire file buffer for Sony/Xperia deep APP1 segments)
+    function extractExifFromBuffer(buffer) {
+      const view = new DataView(buffer);
+      if (view.byteLength < 12 || view.getUint16(0, false) !== 0xFFD8) return null;
+
+      let offset = 2;
+      let bestResult = { lat: null, lon: null, dateStr: null };
+
+      while (offset + 4 < view.byteLength) {
+        if (view.getUint8(offset) !== 0xFF) {
+          offset++;
+          continue;
+        }
+        const marker = view.getUint8(offset + 1);
+        if (marker === 0xFF) {
+          offset++;
+          continue;
+        }
+        if (marker === 0xDA || marker === 0xD9) break; // SOS or EOI
+
+        const segLen = view.getUint16(offset + 2, false);
+        if (segLen < 2 || offset + 2 + segLen > view.byteLength) break;
+
+        // APP1 (0xFFE1) check for "Exif\0\0"
+        if (marker === 0xE1 && segLen >= 10) {
+          if (view.getUint32(offset + 4, false) === 0x45786966 && view.getUint16(offset + 8, false) === 0x0000) {
+            const tiffStart = offset + 10;
+            const parsed = parseTiffSegment(view, tiffStart, offset + 2 + segLen);
+            if (parsed) {
+              if (parsed.lat !== null && parsed.lon !== null) {
+                bestResult.lat = parsed.lat;
+                bestResult.lon = parsed.lon;
+              }
+              if (parsed.dateStr && !bestResult.dateStr) {
+                bestResult.dateStr = parsed.dateStr;
+              }
+            }
+          }
+        }
+        offset += 2 + segLen;
+      }
+      return bestResult;
+    }
+
+    function parseTiffSegment(view, tiffStart, maxEnd) {
+      if (tiffStart + 8 > maxEnd) return null;
+      const byteOrder = view.getUint16(tiffStart, false);
+      const little = (byteOrder === 0x4949);
+      if (!little && byteOrder !== 0x4D4D) return null;
+      if (view.getUint16(tiffStart + 2, little) !== 0x002A) return null;
+
+      const ifd0Offset = view.getUint32(tiffStart + 4, little);
+      if (tiffStart + ifd0Offset + 2 > maxEnd) return null;
+
+      let exifIfdPtr = null;
+      let gpsIfdPtr = null;
+      let dateStr = null;
+
+      function readAscii(valOffset, count) {
+        let s = "";
+        for (let i = 0; i < count - 1 && valOffset + i < maxEnd; i++) {
+          const c = view.getUint8(valOffset + i);
+          if (c === 0) break;
+          s += String.fromCharCode(c);
+        }
+        return s.trim();
       }
 
-      let addedCount = 0;
+      const numEntries0 = view.getUint16(tiffStart + ifd0Offset, little);
+      for (let i = 0; i < numEntries0; i++) {
+        const entryOffset = tiffStart + ifd0Offset + 2 + i * 12;
+        if (entryOffset + 12 > maxEnd) break;
+        const tag = view.getUint16(entryOffset, little);
+        const type = view.getUint16(entryOffset + 2, little);
+        const count = view.getUint32(entryOffset + 4, little);
+        if (tag === 0x0132 && type === 2 && count >= 10) {
+          const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
+          if (valOff + count <= maxEnd) dateStr = readAscii(valOff, count);
+        } else if (tag === 0x8769) {
+          exifIfdPtr = view.getUint32(entryOffset + 8, little);
+        } else if (tag === 0x8825) {
+          gpsIfdPtr = view.getUint32(entryOffset + 8, little);
+        }
+      }
+
+      if (exifIfdPtr && tiffStart + exifIfdPtr + 2 <= maxEnd) {
+        const numExif = view.getUint16(tiffStart + exifIfdPtr, little);
+        for (let i = 0; i < numExif; i++) {
+          const entryOffset = tiffStart + exifIfdPtr + 2 + i * 12;
+          if (entryOffset + 12 > maxEnd) break;
+          const tag = view.getUint16(entryOffset, little);
+          const type = view.getUint16(entryOffset + 2, little);
+          const count = view.getUint32(entryOffset + 4, little);
+          if ((tag === 0x9003 || tag === 0x9004) && type === 2 && count >= 10) {
+            const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
+            if (valOff + count <= maxEnd) dateStr = readAscii(valOff, count);
+          }
+        }
+      }
+
+      let lat = null, lon = null;
+      if (gpsIfdPtr && tiffStart + gpsIfdPtr + 2 <= maxEnd) {
+        const numGps = view.getUint16(tiffStart + gpsIfdPtr, little);
+        let latRef = "N", lonRef = "E";
+        let latVals = null, lonVals = null;
+
+        function readRationals(valOff, isSigned) {
+          if (valOff + 24 > maxEnd) return null;
+          const res = [];
+          for (let k = 0; k < 3; k++) {
+            const num = isSigned ? view.getInt32(valOff + k * 8, little) : view.getUint32(valOff + k * 8, little);
+            const den = isSigned ? view.getInt32(valOff + k * 8 + 4, little) : view.getUint32(valOff + k * 8 + 4, little);
+            res.push(den !== 0 ? (num / den) : 0);
+          }
+          return res[0] + (res[1] / 60) + (res[2] / 3600);
+        }
+
+        for (let i = 0; i < numGps; i++) {
+          const entryOffset = tiffStart + gpsIfdPtr + 2 + i * 12;
+          if (entryOffset + 12 > maxEnd) break;
+          const tag = view.getUint16(entryOffset, little);
+          const type = view.getUint16(entryOffset + 2, little);
+          const count = view.getUint32(entryOffset + 4, little);
+          if (tag === 0x0001) {
+            const ch = view.getUint8(entryOffset + 8);
+            if (ch === 83 || ch === 115) latRef = "S";
+          } else if (tag === 0x0003) {
+            const ch = view.getUint8(entryOffset + 8);
+            if (ch === 87 || ch === 119) lonRef = "W";
+          } else if (tag === 0x0002 && (type === 5 || type === 10) && count === 3) {
+            const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
+            latVals = readRationals(valOff, type === 10);
+          } else if (tag === 0x0004 && (type === 5 || type === 10) && count === 3) {
+            const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
+            lonVals = readRationals(valOff, type === 10);
+          }
+        }
+
+        if (latVals !== null && lonVals !== null && (latVals !== 0 || lonVals !== 0)) {
+          lat = latVals * (latRef === "S" ? -1 : 1);
+          lon = lonVals * (lonRef === "W" ? -1 : 1);
+        }
+      }
+
+      return { lat, lon, dateStr };
+    }
+
+    // Parse Exif date string "YYYY:MM:DD HH:MM:SS" or filename timestamp into milliseconds
+    function parsePhotoTimestampMs(exifDateStr, file) {
+      if (exifDateStr) {
+        if (exifDateStr instanceof Date && !isNaN(exifDateStr.getTime())) {
+          return exifDateStr.getTime();
+        }
+        const s = String(exifDateStr).trim().replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) return d.getTime();
+      }
+      // Try extracting date from filename (e.g. 20250715_143022 or DSC_... )
+      if (file && file.name) {
+        const m = file.name.match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})[-_]?(\d{2})(\d{2})(\d{2})/);
+        if (m) {
+          const d = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`);
+          if (!isNaN(d.getTime())) return d.getTime();
+        }
+      }
+      if (file && file.lastModified) {
+        return file.lastModified;
+      }
+      return null;
+    }
+
+    // Find closest timeline point within 6 hours if GPS was stripped by OS
+    function findClosestTimelineCoord(targetMs) {
+      if (!targetMs || allTimelinePointsForPhotoSync.length === 0) return null;
+      let bestPt = null;
+      let minDiff = Infinity;
+      for (let i = 0; i < allTimelinePointsForPhotoSync.length; i++) {
+        const item = allTimelinePointsForPhotoSync[i];
+        const diff = Math.abs(item.ms - targetMs);
+        if (diff < minDiff) {
+          minDiff = diff;
+          bestPt = item.pt;
+        }
+      }
+      // Within 6 hours tolerance
+      if (minDiff <= 6 * 3600000) return bestPt;
+      return null;
+    }
+
+    async function handlePhotoFiles(files) {
+      if (!files || files.length === 0) return;
+
+      let exifCount = 0;
+      let syncCount = 0;
       const photoBounds = [];
       document.getElementById('photoStatus').textContent = "SCANNING PHOTOS…⏳";
 
       for (const file of files) {
+        let lat = null, lon = null, dateStr = "", matchMode = "EXIF GPS";
+
+        // Step 1: Full Binary Scan (Custom deep parser for Xperia/Sony)
         try {
-          const gps = await exifr.gps(file);
-          if (gps && typeof gps.latitude === 'number' && typeof gps.longitude === 'number' && !isNaN(gps.latitude) && !isNaN(gps.longitude)) {
-            const lat = gps.latitude;
-            const lon = gps.longitude;
-
-            let dateStr = "";
-            try {
-              const meta = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate']);
-              if (meta && (meta.DateTimeOriginal || meta.CreateDate)) {
-                dateStr = formatDateTime(meta.DateTimeOriginal || meta.CreateDate);
-              }
-            } catch (ignore) {}
-
-            const imgUrl = URL.createObjectURL(file);
-            const icon = L.divIcon({
-              className: '',
-              html: `<img src="${imgUrl}" class="photo-marker" style="width:46px; height:46px;">`,
-              iconSize: [46, 46], iconAnchor: [23, 23]
-            });
-
-            const m = L.marker([lat, lon], { icon: icon, zIndexOffset: 1400 });
-            m.bindPopup(`<div class="popup-content" style="text-align:center;"><img src="${imgUrl}" style="max-width:220px; max-height:220px; border:2px solid #fff; object-fit:contain;"><br><strong style="color:var(--p-yellow);">📸 ${file.name}</strong><br><span style="font-size:0.75rem; color:#ccc;">${dateStr}</span></div>`);
-            m.addTo(photosLayer);
-            photoBounds.push([lat, lon]);
-            addedCount++;
+          const buffer = await file.arrayBuffer();
+          const binRes = extractExifFromBuffer(buffer);
+          if (binRes) {
+            if (binRes.lat !== null && binRes.lon !== null) {
+              lat = binRes.lat;
+              lon = binRes.lon;
+            }
+            if (binRes.dateStr) dateStr = binRes.dateStr;
           }
-        } catch (err) {
-          console.warn("Exif parse skip:", file.name, err);
+        } catch (e) {}
+
+        // Step 2: Fallback to exifr full library (whole file read enabled)
+        if ((lat === null || lon === null) && typeof exifr !== 'undefined') {
+          try {
+            const parsed = await exifr.parse(file, { gps: true, tiff: true, exif: true, xmp: true, chunked: false });
+            if (parsed) {
+              if (typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number' && !isNaN(parsed.latitude)) {
+                lat = parsed.latitude;
+                lon = parsed.longitude;
+              }
+              if (!dateStr && (parsed.DateTimeOriginal || parsed.CreateDate)) {
+                dateStr = formatDateTime(parsed.DateTimeOriginal || parsed.CreateDate);
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Step 3: If GPS was stripped by Android/Transfer, sync with Timeline by Timestamp!
+        const photoMs = parsePhotoTimestampMs(dateStr, file);
+        if (!dateStr && photoMs) {
+          dateStr = formatDateTime(new Date(photoMs).toISOString());
+        }
+
+        if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
+          exifCount++;
+        } else if (photoMs && allTimelinePointsForPhotoSync.length > 0) {
+          const syncedPt = findClosestTimelineCoord(photoMs);
+          if (syncedPt) {
+            lat = syncedPt[0];
+            lon = syncedPt[1];
+            matchMode = "⚡TIMELINE SYNC";
+            syncCount++;
+          }
+        }
+
+        if (lat !== null && lon !== null) {
+          const imgUrl = URL.createObjectURL(file);
+          const icon = L.divIcon({
+            className: '',
+            html: `<img src="${imgUrl}" class="photo-marker" style="width:46px; height:46px;">`,
+            iconSize: [46, 46], iconAnchor: [23, 23]
+          });
+
+          const m = L.marker([lat, lon], { icon: icon, zIndexOffset: 1400 });
+          m.bindPopup(`<div class="popup-content" style="text-align:center;"><img src="${imgUrl}" style="max-width:220px; max-height:220px; border:2px solid #fff; object-fit:contain;"><br><strong style="color:var(--p-yellow);">📸 ${file.name}</strong><br><span style="font-size:0.72rem; color:var(--p-cyan);">[${matchMode}]</span><br><span style="font-size:0.74rem; color:#ccc;">${dateStr}</span></div>`);
+          m.addTo(photosLayer);
+          photoBounds.push([lat, lon]);
         }
       }
 
-      if (addedCount > 0) {
-        document.getElementById('photoStatus').textContent = `🃏 ${addedCount} / ${files.length} PHOTOS MAPPED`;
+      const totalAdded = exifCount + syncCount;
+      if (totalAdded > 0) {
+        document.getElementById('photoStatus').innerHTML = `🃏 <strong>${totalAdded} / ${files.length} PHOTOS MAPPED!</strong><br>(EXIF GPS: ${exifCount}枚 ／ タイムライン日時照合: ${syncCount}枚)`;
         document.getElementById('clearPhotosBtn').style.display = 'block';
         map.fitBounds(photoBounds, { padding: [50, 50], maxZoom: 14 });
         if (window.innerWidth <= 768) toggleSidebar(false);
       } else {
-        document.getElementById('photoStatus').innerHTML = "⚠️ 写真からGPS情報が検出されませんでした。<br>スマホで選択する際は、ギャラリーから直接選ばず<strong>「フォルダ参照（ファイルアプリ）」</strong>から元画像を選択してください。";
+        if (allTimelinePointsForPhotoSync.length === 0) {
+          document.getElementById('photoStatus').innerHTML = "⚠️ 写真内にGPS情報が見つかりませんでした。<br>先に「📊 CONFIG」で <strong>タイムライン.json</strong> を読み込んでおくと、GPSが消去された写真でも撮影日時からルート上に自動配置できます！";
+        } else {
+          document.getElementById('photoStatus').innerHTML = "⚠️ 写真のGPS情報、および撮影日時に一致するタイムライン記録が見つかりませんでした。";
+        }
       }
+    }
+
+    document.getElementById('photoInput').addEventListener('change', function(e) {
+      handlePhotoFiles(Array.from(e.target.files));
+    });
+    document.getElementById('photoRawInput').addEventListener('change', function(e) {
+      handlePhotoFiles(Array.from(e.target.files));
     });
   </script>
 </body>
