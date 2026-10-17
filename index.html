@@ -1184,37 +1184,38 @@
       <div class="box">
         <div class="section-header-row">
           <div class="section-title">📸 PHOTO MAPPING (EXIF &amp; SYNC)</div>
-          <span class="help-mark" data-tip-title="PHOTO MAPPING" data-tip="写真内のGPS座標（Exif）を解析して地図に配置します。万が一OSの仕様等でGPSが消去されている写真でも、撮影日時（または更新日時）からタイムライン上の該当位置を自動特定して配置します。">?</span>
+          <span class="help-mark" data-tip-title="PHOTO MAPPING" data-tip="写真のGPS座標（Exif）を解析して地図に配置します。PCへの転送等でGPSが消えている写真でも、ファイル名の日付や撮影日時からタイムライン上の位置を自動特定して配置します。">?</span>
         </div>
 
         <label>1. PC / STANDARD SELECT</label>
-        <input type="file" id="photoInput" accept="image/jpeg,image/jpg,image/heic,image/webp,.jpg,.jpeg" multiple>
+        <input type="file" id="photoInput" accept="image/jpeg,image/jpg,image/heic,image/webp,image/png,.jpg,.jpeg,.png" multiple>
 
         <label style="margin-top:6px;">2. ANDROID / FILE MANAGER MODE</label>
-        <!-- accept属性を外すことでAndroidの強制フォトピッカー（GPS削除機能）を回避し、ファイルアプリを開けるようにする -->
         <input type="file" id="photoRawInput" multiple style="display:none;">
         <button type="button" class="btn btn-guide" style="margin-bottom:6px;" onclick="document.getElementById('photoRawInput').click()">📁 スマホでファイルアプリから直接選ぶ (GPS保持)</button>
 
-        <div class="note" style="color:#d1d5db; background:#111; padding:6px 8px; border-left:3px solid var(--p-cyan); margin-bottom:6px;">
-          ⚡ <strong>タイムライン自動シンクロ機能搭載：</strong><br>
-          写真にGPS情報が入っている場合はその正確な座標に配置し、もしスマホの仕様でGPSが消されていた場合でも、<strong>「写真の撮影日時」と「タイムラインの移動日時」を自動照合</strong>してルート上に配置します！
+        <div class="note" style="color:#d1d5db; background:#111; padding:7px 9px; border-left:3px solid var(--p-yellow); margin-bottom:6px;">
+          💾 <strong>写真の保存・バックアップについて：</strong><br>
+          配置した写真はサムネイル化されブラウザに一時保存されますが、キャッシュ削除等で消えるのを防ぐため、配置後は<strong>「📝 LOGBOOK」タブの『💾 EXPORT JSON』からファイルとして保存</strong>しておくことをおすすめします（次回IMPORTで写真ごと復元できます）。
         </div>
         <button type="button" id="clearPhotosBtn" class="btn btn-sub" style="display:none; margin-top:4px;" onclick="clearMappedPhotos()">🗑️ CLEAR MAPPED PHOTOS</button>
         <div id="photoStatus" class="note" style="color:var(--p-yellow);"></div>
       </div>
     </div>
 
-    <!-- Tab 5: LOGBOOK -->
+    <!-- Tab 5: LOGBOOK (ヘルプ？マーク＆写真同梱バックアップ対応) -->
     <div id="tab-memo" class="tab-content">
       <div class="box">
         <div class="section-header-row">
           <div class="section-title">📝 MEMORY LOGBOOK</div>
+          <span class="help-mark" data-tip-title="MEMORY LOGBOOK" data-tip="地図上のスポットに記録したカスタムアイコン・思い出メモ、および『▶️ REPLAY』タブで配置した写真データを一覧管理します。JSONファイルとして書き出しておけば、いつでもメモと写真を完全復元できます。">?</span>
         </div>
         <div id="memoListContainer" style="margin-top:8px;"><p class="note">NO LOGS SAVED</p></div>
         <hr style="border:none; border-top:2px solid var(--p-red); margin:12px 0;">
-        <button type="button" class="btn btn-sub" onclick="exportMemos()">💾 EXPORT JSON</button>
-        <label style="margin-top:8px;">📂 IMPORT JSON</label>
-        <input type="file" id="memoImportInput" accept=".json" onchange="importMemos(event)">
+        <label>BACKUP (MEMOS &amp; PHOTOS) <span class="help-mark" data-tip-title="EXPORT / IMPORT JSON" data-tip="【EXPORT JSON】保存したスポットメモと配置済みの写真データを1つのJSONファイルにまとめてダウンロードします。<br>【IMPORT JSON】保存しておいたJSONファイルを読み込み、メモと写真を地図上に復元します。">?</span></label>
+        <button type="button" class="btn btn-sub" onclick="exportMemos()">💾 EXPORT JSON (メモと写真を保存)</button>
+        <label style="margin-top:8px;">📂 IMPORT JSON (メモと写真を復元)</label>
+        <input type="file" id="memoImportInput" accept=".json,application/json" onchange="importMemos(event)">
       </div>
     </div>
   </div>
@@ -1341,13 +1342,16 @@
       renderData();
     };
 
-    // LocalStorage Management
+    // LocalStorage Management (Memos, Photos, Ignored Items)
     let savedMemos = {};
+    let savedPhotos = []; // 写真をBase64サムネイル化して保存・JSON出力するための配列
     let ignoredDays = {};
     let ignoredSpots = {};
     try {
       const stored = localStorage.getItem('timeline_viewer_memos_v9');
       if (stored) savedMemos = JSON.parse(stored);
+      const storedPhotos = localStorage.getItem('timeline_viewer_photos_v10');
+      if (storedPhotos) savedPhotos = JSON.parse(storedPhotos);
       const storedIgnored = localStorage.getItem('timeline_viewer_ignored_days_v9');
       if (storedIgnored) ignoredDays = JSON.parse(storedIgnored);
       const storedSpots = localStorage.getItem('timeline_viewer_ignored_spots_v9');
@@ -1356,6 +1360,9 @@
 
     function saveMemosToStorage() {
       try { localStorage.setItem('timeline_viewer_memos_v9', JSON.stringify(savedMemos)); } catch (e) {}
+    }
+    function savePhotosToStorage() {
+      try { localStorage.setItem('timeline_viewer_photos_v10', JSON.stringify(savedPhotos)); } catch (e) {}
     }
     function saveIgnoredToStorage() {
       try {
@@ -1406,7 +1413,7 @@
     let animLayer = L.layerGroup().addTo(map);
 
     let rawSegments = [];
-    let allTimelinePointsForPhotoSync = []; // 写真の撮影日時から座標を逆引きするための全タイムラインキャッシュ
+    let allTimelinePointsForPhotoSync = [];
     let allFilteredPlaybackPoints = [];
     let activePlaybackPoints = [];
     let sessionRoutesMap = {};
@@ -1424,14 +1431,11 @@
       '#ff6600'  // DAY 6: ORANGE
     ];
 
-    // Extreme Capes Coordinates (12km proximity threshold)
     const EXTREME_CAPES = {
-      // Honshu 4 Extremes
       oma:      { lat: 41.5464, lon: 140.9125, radiusKm: 12.0 },
       todoga:   { lat: 39.5483, lon: 142.0725, radiusKm: 12.0 },
       shiono:   { lat: 33.4339, lon: 135.7583, radiusKm: 12.0 },
       bishano:  { lat: 34.1114, lon: 130.8583, radiusKm: 12.0 },
-      // Mainland 4 Extremes
       soya:     { lat: 45.5229, lon: 141.9366, radiusKm: 12.0 },
       nosappu:  { lat: 43.3853, lon: 145.8164, radiusKm: 12.0 },
       sata:     { lat: 30.9942, lon: 130.6606, radiusKm: 12.0 },
@@ -1582,7 +1586,6 @@
       return null;
     }
 
-    // Universal Timeline Data Normalizer
     function normalizeTimelineData(json) {
       let sourceArray = [];
       if (Array.isArray(json)) {
@@ -1609,7 +1612,7 @@
           const endTime = pv.duration ? pv.duration.endTimestamp : startTime;
           if (pt && startTime) {
             const ms = new Date(startTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
             normalized.push({
               startTime: startTime,
               endTime: endTime,
@@ -1653,7 +1656,7 @@
             pathPts.forEach(pp => {
               const pt = parsePoint(pp.point);
               const ms = new Date(pp.time).getTime();
-              if (pt && !isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
+              if (pt && !isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
             });
             normalized.push({ startTime: startTime, endTime: endTime, timelinePath: pathPts });
           }
@@ -1672,7 +1675,7 @@
           const pt = parsePoint(locSource);
           if (pt) {
             const ms = new Date(startTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
             let semType = top.semanticType || item.visit.semanticType || "UNKNOWN";
             if (semType === "Inferred Home" || semType === "TYPE_HOME") semType = "HOME";
             normSeg.visit = {
@@ -1698,7 +1701,7 @@
             }
             const finalTime = tStr || startTime;
             const ms = new Date(finalTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: pt });
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
             normPath.push({ point: `${pt[0]}, ${pt[1]}`, time: finalTime });
           });
           if (normPath.length > 0) normSeg.timelinePath = normPath;
@@ -1708,12 +1711,12 @@
           const ePt = parsePoint(item.activity.end);
           if (sPt) {
             const ms = new Date(startTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: sPt });
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: sPt });
             actPts.push({ point: `${sPt[0]}, ${sPt[1]}`, time: startTime });
           }
           if (ePt) {
             const ms = new Date(endTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, pt: ePt });
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: ePt });
             actPts.push({ point: `${ePt[0]}, ${ePt[1]}`, time: endTime });
           }
           if (actPts.length > 0) normSeg.timelinePath = actPts;
@@ -1802,50 +1805,139 @@
       updateMemoListUI();
     };
 
+    // 写真メモ保存＆個別削除関数
+    window.savePhotoMemo = function(photoId) {
+      const item = savedPhotos.find(p => p.id === photoId);
+      const input = document.getElementById(`pmemo_${photoId}`);
+      if (item && input) {
+        item.memo = input.value;
+        savePhotosToStorage();
+        renderSavedPhotosOnMap();
+        updateMemoListUI();
+      }
+    };
+
+    window.deleteSinglePhoto = function(photoId) {
+      savedPhotos = savedPhotos.filter(p => p.id !== photoId);
+      savePhotosToStorage();
+      renderSavedPhotosOnMap();
+      updateMemoListUI();
+    };
+
+    // LOGBOOK一覧表示（スポットメモ＋保存済み写真の両方を一覧化！）
     function updateMemoListUI() {
       const container = document.getElementById('memoListContainer');
-      const keys = Object.keys(savedMemos);
-      if (keys.length === 0) {
-        container.innerHTML = '<p class="note">NO LOGS SAVED</p>';
-        return;
-      }
       let html = '';
-      keys.forEach(k => {
+
+      Object.keys(savedMemos).forEach(k => {
         const m = savedMemos[k];
         if (!m.text && m.cat === '📍') return;
         html += `<div style="padding:8px; border-bottom:1px solid #333; font-size:0.78rem; cursor:pointer; text-align:left;" onclick="window.mapObj.setView([${m.lat}, ${m.lon}], 15);">
           <span style="font-size:1.1rem;">${m.cat}</span> <strong style="color:var(--p-yellow);">${m.text || '(ICON ONLY)'}</strong>
-          <div style="font-size:0.68rem; color:#888;">COORD: ${k} (${m.updated})</div>
+          <div style="font-size:0.68rem; color:#888;">SPOT COORD: ${k} (${m.updated})</div>
         </div>`;
       });
-      container.innerHTML = html || '<p class="note">NO LOGS SAVED</p>';
-    }
-    updateMemoListUI();
 
+      savedPhotos.forEach(p => {
+        html += `<div style="padding:8px; border-bottom:1px solid #333; font-size:0.78rem; display:flex; align-items:center; gap:8px; text-align:left;">
+          <img src="${p.dataUrl}" style="width:38px; height:38px; object-fit:cover; border:1.5px solid #fff; cursor:pointer; flex-shrink:0;" onclick="window.mapObj.setView([${p.lat}, ${p.lon}], 15);">
+          <div style="flex:1; min-width:0; cursor:pointer;" onclick="window.mapObj.setView([${p.lat}, ${p.lon}], 15);">
+            <div style="color:var(--p-yellow); font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📸 ${p.memo || p.name}</div>
+            <div style="font-size:0.66rem; color:#888;">${p.dateStr || 'PHOTO'} [${p.matchMode}]</div>
+          </div>
+          <button type="button" class="btn-icon" onclick="deleteSinglePhoto('${p.id}')" title="DELETE PHOTO">🗑️</button>
+        </div>`;
+      });
+
+      container.innerHTML = html || '<p class="note">NO LOGS OR PHOTOS SAVED</p>';
+    }
+
+    // 保存済み写真の地図描画関数
+    function renderSavedPhotosOnMap() {
+      photosLayer.clearLayers();
+      if (!savedPhotos || savedPhotos.length === 0) {
+        document.getElementById('clearPhotosBtn').style.display = 'none';
+        return;
+      }
+      document.getElementById('clearPhotosBtn').style.display = 'block';
+
+      savedPhotos.forEach(p => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<img src="${p.dataUrl}" class="photo-marker" style="width:46px; height:46px;">`,
+          iconSize: [46, 46], iconAnchor: [23, 23]
+        });
+
+        const m = L.marker([p.lat, p.lon], { icon: icon, zIndexOffset: 1400 });
+        const popupHtml = `
+          <div class="popup-content" style="text-align:center;">
+            <img src="${p.dataUrl}" style="max-width:220px; max-height:200px; border:2px solid #fff; object-fit:contain;"><br>
+            <strong style="color:var(--p-yellow);">📸 ${p.name}</strong><br>
+            <span style="font-size:0.7rem; color:var(--p-cyan);">[${p.matchMode}]</span>
+            <span style="font-size:0.72rem; color:#ccc;"> ${p.dateStr || ''}</span>
+            <div style="margin-top:6px; text-align:left; background:#141414; padding:6px; border:1px solid #444;">
+              <input type="text" id="pmemo_${p.id}" value="${(p.memo || '').replace(/"/g, '&quot;')}" placeholder="写真の一言メモ..." style="margin-bottom:4px; padding:4px; font-size:0.75rem;">
+              <div class="inline-row" style="margin-bottom:0;">
+                <button type="button" class="btn" style="padding:4px; margin:0; flex:1; font-size:0.72rem;" onclick="savePhotoMemo('${p.id}')">💾 SAVE MEMO</button>
+                <button type="button" class="btn btn-sub" style="padding:4px 8px; margin:0; width:auto; font-size:0.72rem;" onclick="deleteSinglePhoto('${p.id}')">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `;
+        m.bindPopup(popupHtml);
+        m.addTo(photosLayer);
+      });
+    }
+
+    // 初期起動時に保存済みメモ＆写真を復元
+    updateMemoListUI();
+    renderSavedPhotosOnMap();
+
+    // 💾 LOGBOOK JSONエクスポート（スポットメモ＋写真データの両方を統合出力！）
     window.exportMemos = function() {
-      const blob = new Blob([JSON.stringify(savedMemos, null, 2)], { type: 'application/json' });
+      const exportPayload = {
+        version: "10.2",
+        exportedAt: new Date().toISOString(),
+        memos: savedMemos,
+        photos: savedPhotos
+      };
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'touring_memos.json';
+      a.download = 'touring_logbook_backup.json';
       a.click();
     };
 
+    // 📂 LOGBOOK JSONインポート（旧形式のメモ単体JSONにも、新形式の写真同梱JSONにも両対応！）
     window.importMemos = function(e) {
       const file = e.target.files[0];
       if (!file) return;
       const r = new FileReader();
       r.onload = function(ev) {
         try {
-          savedMemos = Object.assign(savedMemos, JSON.parse(ev.target.result));
+          const parsed = JSON.parse(ev.target.result);
+          if (parsed && (parsed.memos || parsed.photos)) {
+            if (parsed.memos) savedMemos = Object.assign(savedMemos, parsed.memos);
+            if (Array.isArray(parsed.photos)) {
+              const existingIds = new Set(savedPhotos.map(p => p.id));
+              parsed.photos.forEach(p => {
+                if (!existingIds.has(p.id)) savedPhotos.push(p);
+              });
+            }
+          } else if (parsed && typeof parsed === 'object') {
+            savedMemos = Object.assign(savedMemos, parsed);
+          }
           saveMemosToStorage();
+          savePhotosToStorage();
           renderData();
+          renderSavedPhotosOnMap();
           updateMemoListUI();
+          alert('LOGBOOK DATA RESTORED!! (メモと写真を復元しました)');
         } catch(err) { alert('JSON IMPORT FAILED'); }
       };
       r.readAsText(file);
     };
 
-    // Automatic Home Coordinate Detection
     function detectUserHomeCoords(segments) {
       let explicitHome = null;
       const stayCounter = {};
@@ -1914,7 +2006,6 @@
       document.getElementById(id).addEventListener('change', renderData);
     });
 
-    // Highlight Specific Session or Date Route
     function renderHighlightedSegments(segmentsList, bannerTitle) {
       stopTimelapse();
       polylinesLayer.clearLayers();
@@ -2038,7 +2129,7 @@
     window.highlightRouteByDate = function(dateStr) {
       const sKeys = dateToSessionsMap[dateStr];
       if (!sKeys || sKeys.length === 0) {
-        alert(`${dateStr} の移動ルートデータが見つかりません。`);
+        alert(`${dateStr} の移動ルートデータが見つかりません。');
         return;
       }
       const combinedSegments = [];
@@ -2981,17 +3072,46 @@
     };
 
     // =========================================================================
-    // 📸 Deep Binary Exif Scanner + Timeline Timestamp Sync Engine
+    // 📸 Deep Binary Exif Scanner + Flexible Filename Date Sync + Thumbnail Saver
     // =========================================================================
     window.clearMappedPhotos = function() {
+      savedPhotos = [];
+      savePhotosToStorage();
       photosLayer.clearLayers();
       document.getElementById('photoInput').value = '';
       document.getElementById('photoRawInput').value = '';
       document.getElementById('photoStatus').textContent = '';
       document.getElementById('clearPhotosBtn').style.display = 'none';
+      updateMemoListUI();
     };
 
-    // Direct Binary JPEG Exif Scanner (Scans entire file buffer for Sony/Xperia deep APP1 segments)
+    // Generate lightweight Base64 thumbnail so photos can be saved in LocalStorage and exported in JSON
+    function createThumbnailDataUrl(file, maxDim = 320) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            let w = img.width, h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.78));
+          };
+          img.onerror = () => resolve(e.target.result);
+          img.src = e.target.result;
+        };
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
+    }
+
     function extractExifFromBuffer(buffer) {
       const view = new DataView(buffer);
       if (view.byteLength < 12 || view.getUint16(0, false) !== 0xFFD8) return null;
@@ -3009,12 +3129,11 @@
           offset++;
           continue;
         }
-        if (marker === 0xDA || marker === 0xD9) break; // SOS or EOI
+        if (marker === 0xDA || marker === 0xD9) break;
 
         const segLen = view.getUint16(offset + 2, false);
         if (segLen < 2 || offset + 2 + segLen > view.byteLength) break;
 
-        // APP1 (0xFFE1) check for "Exif\0\0"
         if (marker === 0xE1 && segLen >= 10) {
           if (view.getUint32(offset + 4, false) === 0x45786966 && view.getUint16(offset + 8, false) === 0x0000) {
             const tiffStart = offset + 10;
@@ -3138,45 +3257,78 @@
       return { lat, lon, dateStr };
     }
 
-    // Parse Exif date string "YYYY:MM:DD HH:MM:SS" or filename timestamp into milliseconds
-    function parsePhotoTimestampMs(exifDateStr, file) {
+    // Flexible Filename & Exif Timestamp Parser (Prioritizes filename date over PC transfer lastModified date!)
+    function parsePhotoTimestampInfo(exifDateStr, file) {
+      // 1. Exif DateTimeOriginal
       if (exifDateStr) {
         if (exifDateStr instanceof Date && !isNaN(exifDateStr.getTime())) {
-          return exifDateStr.getTime();
+          return { ms: exifDateStr.getTime(), dateOnlyStr: formatLocalDate(exifDateStr) };
         }
-        const s = String(exifDateStr).trim().replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+        const s = String(exifDateStr).trim().replace(/^(\d{4}):(\d{2}):(\d{2})/, '\$1-\$2-\$3');
         const d = new Date(s);
-        if (!isNaN(d.getTime())) return d.getTime();
+        if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: formatLocalDate(d) };
       }
-      // Try extracting date from filename (e.g. 20250715_143022 or DSC_... )
+
+      // 2. Flexible Filename Date Extraction (Supports YYYYMMDD_HHMMSS, YYYY-MM-DD, YYYYMMDD, 13-digit epoch, etc.)
       if (file && file.name) {
-        const m = file.name.match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})[-_]?(\d{2})(\d{2})(\d{2})/);
-        if (m) {
-          const d = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`);
-          if (!isNaN(d.getTime())) return d.getTime();
+        const fname = file.name;
+        // Pattern A: YYYYMMDD + HHMM(SS)
+        const mFull = fname.match(/(20[12]\d)[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])[-_.\sT]*([01]\d|2[0-3])[-_.]?([0-5]\d)(?:[-_.]?([0-5]\d))?/);
+        if (mFull) {
+          const sec = mFull[6] || "00";
+          const d = new Date(`${mFull[1]}-${mFull[2]}-${mFull[3]}T${mFull[4]}:${mFull[5]}:${sec}`);
+          if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: `${mFull[1]}-${mFull[2]}-${mFull[3]}` };
+        }
+        // Pattern B: Date only in filename (YYYYMMDD or YYYY-MM-DD) -> Defaults to 12:00 noon of that day
+        const mDate = fname.match(/(20[12]\d)[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])/);
+        if (mDate) {
+          const dStr = `${mDate[1]}-${mDate[2]}-${mDate[3]}`;
+          const d = new Date(`${dStr}T12:00:00`);
+          if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: dStr };
+        }
+        // Pattern C: 13-digit epoch milliseconds in filename (e.g. 1723698000000.jpg)
+        const mEpoch = fname.match(/(1[5-9]\d{11})/);
+        if (mEpoch) {
+          const d = new Date(parseInt(mEpoch[1], 10));
+          if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: formatLocalDate(d) };
         }
       }
+
+      // 3. Fallback to file.lastModified
       if (file && file.lastModified) {
-        return file.lastModified;
+        const d = new Date(file.lastModified);
+        return { ms: file.lastModified, dateOnlyStr: formatLocalDate(d) };
       }
       return null;
     }
 
-    // Find closest timeline point within 6 hours if GPS was stripped by OS
-    function findClosestTimelineCoord(targetMs) {
-      if (!targetMs || allTimelinePointsForPhotoSync.length === 0) return null;
-      let bestPt = null;
-      let minDiff = Infinity;
+    // Find closest timeline point (Matches exact time within 24h, or same calendar date!)
+    function findClosestTimelineCoord(timeInfo) {
+      if (!timeInfo || allTimelinePointsForPhotoSync.length === 0) return null;
+      const targetMs = timeInfo.ms;
+      const targetDateStr = timeInfo.dateOnlyStr;
+
+      // First try: Same calendar day match (closest time on that day)
+      let bestSameDayPt = null;
+      let minSameDayDiff = Infinity;
+      let bestOverallPt = null;
+      let minOverallDiff = Infinity;
+
       for (let i = 0; i < allTimelinePointsForPhotoSync.length; i++) {
         const item = allTimelinePointsForPhotoSync[i];
         const diff = Math.abs(item.ms - targetMs);
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestPt = item.pt;
+        if (item.dateStr === targetDateStr && diff < minSameDayDiff) {
+          minSameDayDiff = diff;
+          bestSameDayPt = item.pt;
+        }
+        if (diff < minOverallDiff) {
+          minOverallDiff = diff;
+          bestOverallPt = item.pt;
         }
       }
-      // Within 6 hours tolerance
-      if (minDiff <= 6 * 3600000) return bestPt;
+
+      if (bestSameDayPt) return bestSameDayPt;
+      if (minOverallDiff <= 24 * 3600000) return bestOverallPt;
       return null;
     }
 
@@ -3186,12 +3338,12 @@
       let exifCount = 0;
       let syncCount = 0;
       const photoBounds = [];
-      document.getElementById('photoStatus').textContent = "SCANNING PHOTOS…⏳";
+      document.getElementById('photoStatus').textContent = "SCANNING & SAVING PHOTOS…⏳";
 
       for (const file of files) {
         let lat = null, lon = null, dateStr = "", matchMode = "EXIF GPS";
 
-        // Step 1: Full Binary Scan (Custom deep parser for Xperia/Sony)
+        // Step 1: Full Binary Scan
         try {
           const buffer = await file.arrayBuffer();
           const binRes = extractExifFromBuffer(buffer);
@@ -3204,10 +3356,10 @@
           }
         } catch (e) {}
 
-        // Step 2: Fallback to exifr full library (whole file read enabled)
+        // Step 2: Fallback to exifr full library
         if ((lat === null || lon === null) && typeof exifr !== 'undefined') {
           try {
-            const parsed = await exifr.parse(file, { gps: true, tiff: true, exif: true, xmp: true, chunked: false });
+            const parsed = await exifr.parse(file, { gps: true, tiff: true, exif: true, xmp: true, icc: false, chunked: false });
             if (parsed) {
               if (typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number' && !isNaN(parsed.latitude)) {
                 lat = parsed.latitude;
@@ -3220,50 +3372,55 @@
           } catch (e) {}
         }
 
-        // Step 3: If GPS was stripped by Android/Transfer, sync with Timeline by Timestamp!
-        const photoMs = parsePhotoTimestampMs(dateStr, file);
-        if (!dateStr && photoMs) {
-          dateStr = formatDateTime(new Date(photoMs).toISOString());
+        // Step 3: Filename / Timestamp Sync with Timeline
+        const timeInfo = parsePhotoTimestampInfo(dateStr, file);
+        if (!dateStr && timeInfo) {
+          dateStr = formatDateTime(new Date(timeInfo.ms).toISOString());
         }
 
         if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
           exifCount++;
-        } else if (photoMs && allTimelinePointsForPhotoSync.length > 0) {
-          const syncedPt = findClosestTimelineCoord(photoMs);
+        } else if (timeInfo && allTimelinePointsForPhotoSync.length > 0) {
+          const syncedPt = findClosestTimelineCoord(timeInfo);
           if (syncedPt) {
             lat = syncedPt[0];
             lon = syncedPt[1];
-            matchMode = "⚡TIMELINE SYNC";
+            matchMode = `⚡SYNC (${timeInfo.dateOnlyStr})`;
             syncCount++;
           }
         }
 
         if (lat !== null && lon !== null) {
-          const imgUrl = URL.createObjectURL(file);
-          const icon = L.divIcon({
-            className: '',
-            html: `<img src="${imgUrl}" class="photo-marker" style="width:46px; height:46px;">`,
-            iconSize: [46, 46], iconAnchor: [23, 23]
+          const thumbDataUrl = await createThumbnailDataUrl(file, 320);
+          const photoId = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          savedPhotos.push({
+            id: photoId,
+            name: file.name,
+            lat: lat,
+            lon: lon,
+            dateStr: dateStr,
+            matchMode: matchMode,
+            memo: "",
+            dataUrl: thumbDataUrl
           });
-
-          const m = L.marker([lat, lon], { icon: icon, zIndexOffset: 1400 });
-          m.bindPopup(`<div class="popup-content" style="text-align:center;"><img src="${imgUrl}" style="max-width:220px; max-height:220px; border:2px solid #fff; object-fit:contain;"><br><strong style="color:var(--p-yellow);">📸 ${file.name}</strong><br><span style="font-size:0.72rem; color:var(--p-cyan);">[${matchMode}]</span><br><span style="font-size:0.74rem; color:#ccc;">${dateStr}</span></div>`);
-          m.addTo(photosLayer);
           photoBounds.push([lat, lon]);
         }
       }
 
+      savePhotosToStorage();
+      renderSavedPhotosOnMap();
+      updateMemoListUI();
+
       const totalAdded = exifCount + syncCount;
       if (totalAdded > 0) {
-        document.getElementById('photoStatus').innerHTML = `🃏 <strong>${totalAdded} / ${files.length} PHOTOS MAPPED!</strong><br>(EXIF GPS: ${exifCount}枚 ／ タイムライン日時照合: ${syncCount}枚)`;
-        document.getElementById('clearPhotosBtn').style.display = 'block';
+        document.getElementById('photoStatus').innerHTML = `🃏 <strong>${totalAdded} / ${files.length} PHOTOS MAPPED &amp; SAVED!</strong><br>(EXIF GPS: ${exifCount}枚 ／ 日時・ファイル名シンクロ: ${syncCount}枚)<br><span style="color:var(--p-cyan);">※『📝 LOGBOOK』タブからJSON出力すると写真ごとバックアップ保存できます！</span>`;
         map.fitBounds(photoBounds, { padding: [50, 50], maxZoom: 14 });
         if (window.innerWidth <= 768) toggleSidebar(false);
       } else {
         if (allTimelinePointsForPhotoSync.length === 0) {
-          document.getElementById('photoStatus').innerHTML = "⚠️ 写真内にGPS情報が見つかりませんでした。<br>先に「📊 CONFIG」で <strong>タイムライン.json</strong> を読み込んでおくと、GPSが消去された写真でも撮影日時からルート上に自動配置できます！";
+          document.getElementById('photoStatus').innerHTML = "⚠️ 写真内にGPS情報が見つかりませんでした。<br><strong>先に『📊 CONFIG』で タイムライン.json を読み込んでから写真を選択</strong>すると、ファイル名の日付や撮影日時からルート上に自動配置できます！";
         } else {
-          document.getElementById('photoStatus').innerHTML = "⚠️ 写真のGPS情報、および撮影日時に一致するタイムライン記録が見つかりませんでした。";
+          document.getElementById('photoStatus').innerHTML = "⚠️ 写真内にGPS情報がなく、ファイル名の日付に一致するタイムライン記録も見つかりませんでした。ファイル名に日付（例: <code>20250715.jpg</code>）が含まれているかご確認ください。";
         }
       }
     }
