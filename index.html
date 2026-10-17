@@ -5,789 +5,207 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="origin">
   <title>TAKE YOUR ROUTE // TIMELINE VIEWER</title>
-  <!-- Web Fonts: Montserrat & Noto Sans JP -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,900;1,900&family=Noto+Sans+JP:wght@600;800;900&display=swap" rel="stylesheet">
-  <!-- Leaflet & Full Exifr Library -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
   <style>
     :root {
-      --p-red: #e60012;
-      --p-dark-red: #8a000b;
-      --p-black: #0f0f0f;
-      --p-panel: #181818;
-      --p-white: #ffffff;
-      --p-yellow: #ffe600;
-      --p-cyan: #00e5ff;
-      --p-green: #00ff88;
+      --p-red: #e60012; --p-dark-red: #8a000b; --p-black: #0f0f0f;
+      --p-panel: #181818; --p-white: #ffffff; --p-yellow: #ffe600;
+      --p-cyan: #00e5ff; --p-green: #00ff88;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: "Montserrat", "Noto Sans JP", "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
-      letter-spacing: 0.03em;
-      line-height: 1.45;
-      display: flex;
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-      color: var(--p-white);
-      background-color: var(--p-black);
+      margin: 0; font-family: "Montserrat", "Noto Sans JP", "Segoe UI", "Meiryo", sans-serif;
+      letter-spacing: 0.03em; line-height: 1.45; display: flex;
+      height: 100vh; width: 100vw; overflow: hidden;
+      color: var(--p-white); background-color: var(--p-black);
     }
-
-    /* Sidebar Layout */
     #sidebar {
-      width: clamp(360px, 35vw, 490px);
-      max-width: 100vw;
-      height: 100vh;
+      width: clamp(360px, 35vw, 490px); max-width: 100vw; height: 100vh;
       background-color: var(--p-black);
-      background-image: 
-        radial-gradient(var(--p-dark-red) 15%, transparent 16%),
+      background-image: radial-gradient(var(--p-dark-red) 15%, transparent 16%),
         repeating-linear-gradient(-45deg, rgba(230,0,18,0.06) 0px, rgba(230,0,18,0.06) 14px, transparent 14px, transparent 28px);
       background-size: 18px 18px, 100% 100%;
-      display: flex;
-      flex-direction: column;
-      border-right: 5px solid var(--p-red);
-      box-shadow: 10px 0 28px rgba(0, 0, 0, 0.7);
-      z-index: 1000;
-      flex-shrink: 0;
-      position: relative;
+      display: flex; flex-direction: column; border-right: 5px solid var(--p-red);
+      box-shadow: 10px 0 28px rgba(0,0,0,0.7); z-index: 1000; flex-shrink: 0; position: relative;
     }
-
-    /* Header */
     #sidebar-header {
-      padding: 12px 16px;
-      background: var(--p-red);
-      color: var(--p-white);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-      border-bottom: 4px solid var(--p-white);
-      position: relative;
-      overflow: hidden;
+      padding: 12px 16px; background: var(--p-red); color: var(--p-white);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0; border-bottom: 4px solid var(--p-white); position: relative; overflow: hidden;
     }
     #sidebar-header::after {
-      content: "TIMELINE";
-      position: absolute;
-      right: -5px;
-      bottom: -12px;
-      font-size: 2.4rem;
-      font-weight: 900;
-      color: rgba(0,0,0,0.16);
-      transform: rotate(-5deg);
-      pointer-events: none;
-      letter-spacing: 0.08em;
+      content: "TIMELINE"; position: absolute; right: -5px; bottom: -12px;
+      font-size: 2.4rem; font-weight: 900; color: rgba(0,0,0,0.16);
+      transform: rotate(-5deg); pointer-events: none; letter-spacing: 0.08em;
     }
     .header-title-wrap {
-      transform: skewX(-8deg);
-      background: var(--p-black);
-      padding: 5px 14px 5px 8px;
-      border: 2.5px solid var(--p-white);
-      box-shadow: 4px 4px 0 var(--p-yellow);
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      transform: skewX(-8deg); background: var(--p-black); padding: 5px 14px 5px 8px;
+      border: 2.5px solid var(--p-white); box-shadow: 4px 4px 0 var(--p-yellow);
+      z-index: 2; display: flex; align-items: center; gap: 8px;
     }
     .emblem-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--p-red);
-      color: var(--p-yellow);
-      border: 2px solid var(--p-white);
-      padding: 2px 7px;
-      font-size: 0.85rem;
-      font-weight: 900;
-      letter-spacing: 0;
-      box-shadow: 2px 2px 0 var(--p-yellow);
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--p-red); color: var(--p-yellow); border: 2px solid var(--p-white);
+      padding: 2px 7px; font-size: 0.85rem; font-weight: 900; box-shadow: 2px 2px 0 var(--p-yellow);
     }
-    #sidebar-header h2 {
-      margin: 0;
-      font-size: 0.98rem;
-      font-weight: 900;
-      letter-spacing: 0.08em;
-      color: var(--p-white);
-      white-space: nowrap;
-    }
-
+    #sidebar-header h2 { margin: 0; font-size: 0.98rem; font-weight: 900; letter-spacing: 0.08em; color: var(--p-white); white-space: nowrap; }
     #toggle-btn {
-      display: none;
-      background: var(--p-black);
-      color: var(--p-yellow);
-      border: 2px solid var(--p-white);
-      padding: 5px 12px;
-      font-weight: 800;
-      font-size: 0.78rem;
-      cursor: pointer;
-      transform: skewX(-8deg);
-      z-index: 2;
+      display: none; background: var(--p-black); color: var(--p-yellow);
+      border: 2px solid var(--p-white); padding: 5px 12px; font-weight: 800;
+      font-size: 0.78rem; cursor: pointer; transform: skewX(-8deg); z-index: 2;
     }
-
-    /* Navigation Tabs */
     .tabs-deck {
-      background: var(--p-black);
-      padding: 10px 14px 8px;
-      border-bottom: 3px solid var(--p-red);
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      width: 100%;
-      overflow: hidden;
+      background: var(--p-black); padding: 10px 14px 8px; border-bottom: 3px solid var(--p-red);
+      flex-shrink: 0; display: flex; flex-direction: column; gap: 7px; width: 100%; overflow: hidden;
     }
-    .tabs-row-top {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 6px;
-      width: 100%;
-    }
-    .tabs-row-bottom {
-      display: grid;
-      grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr) 34px;
-      gap: 6px;
-      width: 100%;
-    }
+    .tabs-row-top { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+    .tabs-row-bottom { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr) 34px; gap: 6px; width: 100%; }
     .tab-btn, .tab-arrow {
-      width: 100%;
-      min-width: 0;
-      padding: 6px 4px;
-      border: 2px solid var(--p-white);
-      background: var(--p-panel);
-      color: var(--p-white);
-      font-size: 0.74rem;
-      font-weight: 900;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transform: skewX(-6deg);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: center;
-      transition: all 0.14s ease;
+      width: 100%; min-width: 0; padding: 6px 4px; border: 2px solid var(--p-white);
+      background: var(--p-panel); color: var(--p-white); font-size: 0.74rem; font-weight: 900;
+      letter-spacing: 0.04em; cursor: pointer; transform: skewX(-6deg); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; text-align: center; transition: all 0.14s ease;
       box-shadow: 2px 2px 0 var(--p-red);
     }
-    .tab-arrow {
-      color: var(--p-yellow);
-      padding: 6px 0;
-      font-weight: 900;
-    }
+    .tab-arrow { color: var(--p-yellow); padding: 6px 0; }
     .tab-btn:hover, .tab-arrow:hover {
-      background: var(--p-yellow);
-      color: var(--p-black);
-      border-color: var(--p-black);
-      transform: skewX(-6deg) translateY(-1px);
-      box-shadow: 3px 3px 0 var(--p-white);
+      background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black);
+      transform: skewX(-6deg) translateY(-1px); box-shadow: 3px 3px 0 var(--p-white);
     }
     .tab-btn.active {
-      background: var(--p-red);
-      color: var(--p-white);
-      border-color: var(--p-yellow);
-      transform: skewX(-6deg) translateY(-1px);
-      box-shadow: 3px 3px 0 var(--p-yellow);
+      background: var(--p-red); color: var(--p-white); border-color: var(--p-yellow);
+      transform: skewX(-6deg) translateY(-1px); box-shadow: 3px 3px 0 var(--p-yellow);
     }
-
-    .tab-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px;
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-      animation: slideIn 0.18s ease-out;
-    }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-12px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
+    .tab-content { flex: 1; overflow-y: auto; padding: 14px; display: none; }
+    .tab-content.active { display: block; animation: slideIn 0.18s ease-out; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--p-black); }
     ::-webkit-scrollbar-thumb { background: var(--p-red); border: 1px solid var(--p-white); }
-
     #map { flex: 1; height: 100vh; position: relative; background: #0a0a0a; }
-    
-    .phantom-map-filter .leaflet-tile-pane {
-      filter: invert(100%) hue-rotate(180deg) contrast(130%) saturate(85%) brightness(90%);
-    }
-
+    .phantom-map-filter .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) contrast(130%) saturate(85%) brightness(90%); }
     #mobile-open-btn {
-      display: none;
-      position: absolute;
-      top: 12px;
-      left: 50px;
-      z-index: 999;
-      background: var(--p-red);
-      color: var(--p-white);
-      border: 2.5px solid var(--p-white);
-      padding: 8px 16px;
-      font-weight: 800;
-      transform: skewX(-8deg);
-      box-shadow: 4px 4px 0 var(--p-black);
-      cursor: pointer;
+      display: none; position: absolute; top: 12px; left: 50px; z-index: 999;
+      background: var(--p-red); color: var(--p-white); border: 2.5px solid var(--p-white);
+      padding: 8px 16px; font-weight: 800; transform: skewX(-8deg); box-shadow: 4px 4px 0 var(--p-black); cursor: pointer;
     }
-
-    /* Content Boxes */
     .box {
-      background: rgba(22, 22, 22, 0.95);
-      padding: 14px;
-      margin-bottom: 16px;
-      border: 2.5px solid var(--p-white);
-      box-shadow: 5px 5px 0 var(--p-red);
-      position: relative;
-      transition: box-shadow 0.15s ease;
+      background: rgba(22, 22, 22, 0.95); padding: 14px; margin-bottom: 16px;
+      border: 2.5px solid var(--p-white); box-shadow: 5px 5px 0 var(--p-red);
+      position: relative; transition: box-shadow 0.15s ease;
     }
     .box:hover { box-shadow: 6px 6px 0 var(--p-yellow); }
-    
-    .section-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
+    .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .section-title {
-      font-size: 0.8rem;
-      font-weight: 900;
-      color: var(--p-black);
-      background: var(--p-white);
-      padding: 4px 12px;
-      display: inline-block;
-      transform: skewX(-8deg);
-      border: 2px solid var(--p-black);
-      box-shadow: 3px 3px 0 var(--p-red);
-      letter-spacing: 0.06em;
-      max-width: 85%;
+      font-size: 0.8rem; font-weight: 900; color: var(--p-black); background: var(--p-white);
+      padding: 4px 12px; display: inline-block; transform: skewX(-8deg);
+      border: 2px solid var(--p-black); box-shadow: 3px 3px 0 var(--p-red); letter-spacing: 0.06em; max-width: 85%;
     }
     label {
-      font-weight: 800;
-      font-size: 0.75rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 5px;
-      color: var(--p-yellow);
-      letter-spacing: 0.05em;
+      font-weight: 800; font-size: 0.75rem; display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 5px; color: var(--p-yellow); letter-spacing: 0.05em;
     }
     .help-mark {
-      font-size: 0.7rem;
-      background: #262626;
-      color: var(--p-yellow);
-      padding: 1px 7px;
-      border: 1.5px solid var(--p-yellow);
-      font-weight: 900;
-      cursor: help;
-      transform: skewX(-8deg);
-      transition: all 0.12s;
-      display: inline-block;
-      line-height: 1.3;
+      font-size: 0.7rem; background: #262626; color: var(--p-yellow); padding: 1px 7px;
+      border: 1.5px solid var(--p-yellow); font-weight: 900; cursor: help;
+      transform: skewX(-8deg); transition: all 0.12s; display: inline-block; line-height: 1.3;
     }
-    .help-mark:hover {
-      background: var(--p-yellow);
-      color: var(--p-black);
-      transform: skewX(-8deg) scale(1.1);
-    }
-
+    .help-mark:hover { background: var(--p-yellow); color: var(--p-black); transform: skewX(-8deg) scale(1.1); }
     select, input[type="file"], input[type="text"], input[type="date"], input[type="number"] {
-      width: 100%;
-      padding: 8px 10px;
-      margin-bottom: 10px;
-      border: 2px solid var(--p-white);
-      font-size: 0.8rem;
-      font-weight: 700;
-      font-family: inherit;
-      letter-spacing: 0.03em;
-      background: var(--p-black);
-      color: var(--p-white);
-      box-shadow: 3px 3px 0 var(--p-red);
-      border-radius: 0;
-      text-align: left;
+      width: 100%; padding: 8px 10px; margin-bottom: 10px; border: 2px solid var(--p-white);
+      font-size: 0.8rem; font-weight: 700; font-family: inherit; letter-spacing: 0.03em;
+      background: var(--p-black); color: var(--p-white); box-shadow: 3px 3px 0 var(--p-red); border-radius: 0; text-align: left;
     }
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--p-yellow);
-      box-shadow: 4px 4px 0 var(--p-yellow);
-    }
-
-    .inline-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
+    select:focus, input:focus { outline: none; border-color: var(--p-yellow); box-shadow: 4px 4px 0 var(--p-yellow); }
+    .inline-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .inline-row > * { margin-bottom: 0 !important; min-width: 0; }
-
-    /* Filter Checkboxes */
-    .checkbox-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 10px;
-    }
+    .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
     .checkbox-label {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      font-weight: 700;
-      font-size: 0.74rem;
-      margin-bottom: 2px;
-      cursor: pointer;
-      line-height: 1.3;
-      color: var(--p-white);
-      padding: 6px 8px;
-      background: #121212;
-      border: 1px solid #2e2e2e;
-      transition: all 0.12s;
-      min-width: 0;
-      text-align: left;
+      display: flex; align-items: center; justify-content: flex-start; font-weight: 700;
+      font-size: 0.74rem; margin-bottom: 2px; cursor: pointer; line-height: 1.3;
+      color: var(--p-white); padding: 6px 8px; background: #121212; border: 1px solid #2e2e2e;
+      transition: all 0.12s; min-width: 0; text-align: left;
     }
-    .checkbox-label span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .checkbox-label:hover {
-      background: rgba(230, 0, 18, 0.28);
-      border-color: var(--p-yellow);
-      color: var(--p-yellow);
-    }
-    .checkbox-label input {
-      width: 15px;
-      height: 15px;
-      margin-right: 7px;
-      accent-color: var(--p-red);
-      flex-shrink: 0;
-    }
-
-    /* Legends */
+    .checkbox-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .checkbox-label:hover { background: rgba(230, 0, 18, 0.28); border-color: var(--p-yellow); color: var(--p-yellow); }
+    .checkbox-label input { width: 15px; height: 15px; margin-right: 7px; accent-color: var(--p-red); flex-shrink: 0; }
     .pin-legend {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      background: #121212;
-      border: 1.5px solid #444;
-      padding: 7px 8px;
-      margin-top: 10px;
-      font-size: 0.73rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      cursor: help;
+      display: flex; justify-content: space-around; align-items: center; background: #121212;
+      border: 1.5px solid #444; padding: 7px 8px; margin-top: 10px; font-size: 0.73rem;
+      font-weight: 800; letter-spacing: 0.04em; cursor: help;
     }
-    .pin-dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      display: inline-block;
-      border: 1.5px solid #000;
-      margin-right: 5px;
-      vertical-align: middle;
-    }
-
+    .pin-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 1.5px solid #000; margin-right: 5px; vertical-align: middle; }
     .heat-legend {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.73rem;
-      font-weight: 800;
-      background: var(--p-black);
-      border: 2px solid var(--p-white);
-      padding: 6px 12px;
-      margin-bottom: 10px;
-      white-space: nowrap;
+      display: flex; align-items: center; gap: 10px; font-size: 0.73rem; font-weight: 800;
+      background: var(--p-black); border: 2px solid var(--p-white); padding: 6px 12px; margin-bottom: 10px; white-space: nowrap;
     }
-    .heat-grad {
-      flex: 1;
-      height: 10px;
-      border: 1px solid var(--p-white);
-      background: linear-gradient(90deg, #00e5ff, #00ff88, #ffe600, #ff4500, #e60012);
-    }
-
-    /* Yearly Log Table */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 6px;
-      font-size: 0.8rem;
-      table-layout: fixed;
-    }
-    th, td {
-      border-bottom: 1px solid #2e2e2e;
-      padding: 8px 6px;
-      text-align: center;
-      white-space: nowrap;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-    }
-    th {
-      background: var(--p-red);
-      color: var(--p-white);
-      border: 1px solid var(--p-white);
-      font-weight: 800;
-      letter-spacing: 0.06em;
-    }
-    .year-row {
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-    .year-row:hover td {
-      background: rgba(230, 0, 18, 0.35);
-      color: var(--p-yellow);
-    }
-    .year-row.active-year td {
-      background: rgba(255, 230, 0, 0.18);
-      border-top: 1px solid var(--p-yellow);
-      border-bottom: 1px solid var(--p-yellow);
-    }
+    .heat-grad { flex: 1; height: 10px; border: 1px solid var(--p-white); background: linear-gradient(90deg, #00e5ff, #00ff88, #ffe600, #ff4500, #e60012); }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.8rem; table-layout: fixed; }
+    th, td { border-bottom: 1px solid #2e2e2e; padding: 8px 6px; text-align: center; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+    th { background: var(--p-red); color: var(--p-white); border: 1px solid var(--p-white); font-weight: 800; letter-spacing: 0.06em; }
+    .year-row { cursor: pointer; transition: all 0.12s; }
+    .year-row:hover td { background: rgba(230, 0, 18, 0.35); color: var(--p-yellow); }
+    .year-row.active-year td { background: rgba(255, 230, 0, 0.18); border-top: 1px solid var(--p-yellow); border-bottom: 1px solid var(--p-yellow); }
     td:first-child { color: var(--p-yellow); font-weight: 900; }
-
-    .total-dist-wrap {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      background: #121212;
-      border: 1px solid #333;
-      padding: 10px 14px;
-      margin-bottom: 4px;
-    }
-    .stat-highlight {
-      font-size: 1.75rem;
-      font-weight: 900;
-      color: var(--p-yellow);
-      text-shadow: 3px 3px 0 var(--p-red);
-      letter-spacing: 0.04em;
-      font-variant-numeric: tabular-nums;
-    }
+    .total-dist-wrap { display: flex; justify-content: space-between; align-items: baseline; background: #121212; border: 1px solid #333; padding: 10px 14px; margin-bottom: 4px; }
+    .stat-highlight { font-size: 1.75rem; font-weight: 900; color: var(--p-yellow); text-shadow: 3px 3px 0 var(--p-red); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
     .note { font-size: 0.72rem; color: #b0b8c4; margin-top: 4px; line-height: 1.45; font-weight: 600; text-align: left; }
-
-    /* 47 Prefectures Grid & Board */
-    #pref-detail-board {
-      background: var(--p-black);
-      border: 2px solid var(--p-white);
-      box-shadow: 4px 4px 0 var(--p-red);
-      padding: 10px 12px;
-      margin-top: 10px;
-    }
-    .pref-board-header {
-      font-size: 0.85rem;
-      font-weight: 800;
-      color: var(--p-yellow);
-      border-bottom: 1px solid #333;
-      padding-bottom: 5px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      white-space: nowrap;
-    }
-    .pref-stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-    .pref-stat-cell {
-      background: #161616;
-      border: 1px solid #383838;
-      padding: 6px 4px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    .pref-stat-label {
-      font-size: 0.66rem;
-      color: #aaa;
-      display: block;
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-    .pref-stat-num {
-      font-size: 0.95rem;
-      font-weight: 900;
-      color: var(--p-white);
-      font-variant-numeric: tabular-nums;
-    }
-
+    #pref-detail-board { background: var(--p-black); border: 2px solid var(--p-white); box-shadow: 4px 4px 0 var(--p-red); padding: 10px 12px; margin-top: 10px; }
+    .pref-board-header { font-size: 0.85rem; font-weight: 800; color: var(--p-yellow); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; }
+    .pref-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .pref-stat-cell { background: #161616; border: 1px solid #383838; padding: 6px 4px; text-align: center; white-space: nowrap; overflow: hidden; }
+    .pref-stat-label { font-size: 0.66rem; color: #aaa; display: block; font-weight: 700; margin-bottom: 2px; }
+    .pref-stat-num { font-size: 0.95rem; font-weight: 900; color: var(--p-white); font-variant-numeric: tabular-nums; }
     .pref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; margin-top: 12px; }
-    .pref-badge {
-      padding: 6px 4px;
-      text-align: center;
-      font-size: 0.75rem;
-      font-weight: 800;
-      background: #1a1a1a;
-      color: #666;
-      border: 2px solid #333;
-      cursor: pointer;
-      white-space: nowrap;
-      transform: skewX(-6deg);
-      transition: all 0.12s ease;
-    }
-    .pref-badge:hover {
-      transform: skewX(-6deg) scale(1.08);
-      border-color: var(--p-yellow);
-      z-index: 5;
-    }
+    .pref-badge { padding: 6px 4px; text-align: center; font-size: 0.75rem; font-weight: 800; background: #1a1a1a; color: #666; border: 2px solid #333; cursor: pointer; white-space: nowrap; transform: skewX(-6deg); transition: all 0.12s ease; }
+    .pref-badge:hover { transform: skewX(-6deg) scale(1.08); border-color: var(--p-yellow); z-index: 5; }
     .pref-badge.passed { background: #332b00; color: var(--p-yellow); border-color: var(--p-yellow); }
     .pref-badge.visited { background: #4d0006; color: #ff99a2; border-color: var(--p-red); box-shadow: 2px 2px 0 var(--p-red); }
     .pref-badge.stayed { background: var(--p-red); color: var(--p-white); border-color: var(--p-white); box-shadow: 3px 3px 0 var(--p-yellow); }
-    .pref-badge.selected-pref {
-      outline: 3px solid var(--p-cyan);
-      box-shadow: 0 0 12px var(--p-cyan);
-      transform: skewX(-6deg) scale(1.08);
-      z-index: 6;
-    }
-
-    /* Ranking Lists */
-    .rank-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      margin-bottom: 6px;
-      background: #141414;
-      border-left: 5px solid var(--p-red);
-      border-bottom: 1px solid #2e2e2e;
-      font-size: 0.78rem;
-      gap: 8px;
-      transition: all 0.12s;
-    }
-    .rank-item:hover {
-      background: var(--p-red);
-      color: var(--p-white);
-      border-left-color: var(--p-yellow);
-      transform: translateX(3px);
-    }
-    .rank-main {
-      flex: 1;
-      min-width: 0;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-    .rank-label {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-weight: 700;
-      text-align: left;
-    }
-    .rank-val {
-      font-weight: 800;
-      color: var(--p-yellow);
-      white-space: nowrap;
-      flex-shrink: 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .rank-badge {
-      background: var(--p-white);
-      color: var(--p-black);
-      padding: 1px 6px;
-      font-size: 0.7rem;
-      font-weight: 900;
-      margin-right: 6px;
-      display: inline-block;
-      transform: skewX(-8deg);
-      box-shadow: 2px 2px 0 var(--p-red);
-    }
-    .btn-icon {
-      background: var(--p-black);
-      color: #fff;
-      border: 1.5px solid #666;
-      padding: 4px 7px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transform: skewX(-6deg);
-      transition: all 0.1s;
-    }
+    .pref-badge.selected-pref { outline: 3px solid var(--p-cyan); box-shadow: 0 0 12px var(--p-cyan); transform: skewX(-6deg) scale(1.08); z-index: 6; }
+    .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: #141414; border-left: 5px solid var(--p-red); border-bottom: 1px solid #2e2e2e; font-size: 0.78rem; gap: 8px; transition: all 0.12s; }
+    .rank-item:hover { background: var(--p-red); color: var(--p-white); border-left-color: var(--p-yellow); transform: translateX(3px); }
+    .rank-main { flex: 1; min-width: 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .rank-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; text-align: left; }
+    .rank-val { font-weight: 800; color: var(--p-yellow); white-space: nowrap; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .rank-badge { background: var(--p-white); color: var(--p-black); padding: 1px 6px; font-size: 0.7rem; font-weight: 900; margin-right: 6px; display: inline-block; transform: skewX(-8deg); box-shadow: 2px 2px 0 var(--p-red); }
+    .btn-icon { background: var(--p-black); color: #fff; border: 1.5px solid #666; padding: 4px 7px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; transform: skewX(-6deg); transition: all 0.1s; }
     .btn-icon:hover { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); transform: skewX(-6deg) scale(1.08); }
-
-    /* Trophies / Awards Grid */
-    .trophy-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .trophy-card {
-      padding: 9px 10px;
-      border: 2px solid #3d3d3d;
-      background: #121212;
-      color: #777;
-      filter: grayscale(100%);
-      opacity: 0.6;
-      transition: all 0.18s;
-      cursor: help;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .trophy-card.unlocked {
-      background: var(--p-black);
-      border: 2px solid var(--p-white);
-      color: var(--p-white);
-      filter: grayscale(0%);
-      opacity: 1;
-      box-shadow: 3px 3px 0 var(--p-red);
-    }
-    .trophy-card.unlocked:hover {
-      transform: translateY(-2px);
-      box-shadow: 4px 4px 0 var(--p-yellow);
-    }
-    .trophy-title {
-      font-family: "Montserrat", "Noto Sans JP", sans-serif;
-      font-weight: 900;
-      font-size: 0.72rem;
-      line-height: 1.35;
-      letter-spacing: 0.02em;
-      margin-bottom: 6px;
-      word-break: keep-all;
-      overflow-wrap: break-word;
-      text-align: left;
-    }
+    .trophy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .trophy-card { padding: 9px 10px; border: 2px solid #3d3d3d; background: #121212; color: #777; filter: grayscale(100%); opacity: 0.6; transition: all 0.18s; cursor: help; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+    .trophy-card.unlocked { background: var(--p-black); border: 2px solid var(--p-white); color: var(--p-white); filter: grayscale(0%); opacity: 1; box-shadow: 3px 3px 0 var(--p-red); }
+    .trophy-card.unlocked:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 var(--p-yellow); }
+    .trophy-title { font-family: "Montserrat", "Noto Sans JP", sans-serif; font-weight: 900; font-size: 0.72rem; line-height: 1.35; letter-spacing: 0.02em; margin-bottom: 6px; word-break: keep-all; overflow-wrap: break-word; text-align: left; }
     .trophy-card.unlocked .trophy-title { color: var(--p-yellow); }
-    .trophy-prog-bg {
-      width: 100%;
-      height: 5px;
-      background: #262626;
-      border: 1px solid #555;
-      overflow: hidden;
-    }
+    .trophy-prog-bg { width: 100%; height: 5px; background: #262626; border: 1px solid #555; overflow: hidden; }
     .trophy-prog-fill { height: 100%; background: #555; }
     .trophy-card.unlocked .trophy-prog-fill { background: linear-gradient(90deg, var(--p-red), var(--p-yellow)); }
-    .trophy-stat {
-      font-family: Consolas, Monaco, "Montserrat", monospace, sans-serif;
-      font-size: 0.61rem;
-      letter-spacing: -0.02em;
-      margin-top: 4px;
-      font-weight: 700;
-      color: #ccc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    .trophy-pct {
-      color: var(--p-yellow);
-      font-weight: 800;
-      margin-left: 4px;
-    }
-
-    /* Action Buttons */
-    .btn {
-      background: var(--p-red);
-      color: var(--p-white);
-      border: 2px solid var(--p-white);
-      padding: 8px 10px;
-      cursor: pointer;
-      font-size: 0.78rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      width: 100%;
-      margin-bottom: 6px;
-      white-space: normal;
-      line-height: 1.3;
-      transform: skewX(-4deg);
-      box-shadow: 3px 3px 0 var(--p-white);
-      text-transform: uppercase;
-      transition: all 0.12s;
-    }
-    .btn:hover {
-      background: var(--p-yellow);
-      color: var(--p-black);
-      border-color: var(--p-black);
-      box-shadow: 4px 4px 0 var(--p-red);
-      transform: skewX(-4deg) translateY(-1px);
-    }
-    .btn-guide {
-      background: var(--p-yellow);
-      color: var(--p-black);
-      border: 2px solid var(--p-white);
-      box-shadow: 3px 3px 0 var(--p-red);
-      margin-bottom: 10px;
-      font-size: 0.7rem;
-      padding: 6px 8px;
-      letter-spacing: 0.02em;
-    }
-    .btn-guide:hover {
-      background: var(--p-white);
-      color: var(--p-red);
-      box-shadow: 4px 4px 0 var(--p-yellow);
-    }
+    .trophy-stat { font-family: Consolas, Monaco, "Montserrat", monospace, sans-serif; font-size: 0.61rem; letter-spacing: -0.02em; margin-top: 4px; font-weight: 700; color: #ccc; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden; }
+    .trophy-pct { color: var(--p-yellow); font-weight: 800; margin-left: 4px; }
+    .btn { background: var(--p-red); color: var(--p-white); border: 2px solid var(--p-white); padding: 8px 10px; cursor: pointer; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; width: 100%; margin-bottom: 6px; white-space: normal; line-height: 1.3; transform: skewX(-4deg); box-shadow: 3px 3px 0 var(--p-white); text-transform: uppercase; transition: all 0.12s; }
+    .btn:hover { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); box-shadow: 4px 4px 0 var(--p-red); transform: skewX(-4deg) translateY(-1px); }
+    .btn-guide { background: var(--p-yellow); color: var(--p-black); border: 2px solid var(--p-white); box-shadow: 3px 3px 0 var(--p-red); margin-bottom: 10px; font-size: 0.7rem; padding: 6px 8px; letter-spacing: 0.02em; }
+    .btn-guide:hover { background: var(--p-white); color: var(--p-red); box-shadow: 4px 4px 0 var(--p-yellow); }
     .btn-stop { background: var(--p-black); color: var(--p-yellow); border-color: var(--p-yellow); }
     .btn-sub { background: #262626; font-size: 0.72rem; padding: 6px 10px; box-shadow: 3px 3px 0 var(--p-red); }
-
-    /* Guide Modal */
-    #guide-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal-card {
-      background: var(--p-panel);
-      border: 3px solid var(--p-white);
-      box-shadow: 10px 10px 0 var(--p-red);
-      max-width: 540px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 20px;
-      position: relative;
-    }
-    .modal-step-box {
-      background: #111;
-      border-left: 4px solid var(--p-yellow);
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      font-size: 0.78rem;
-      line-height: 1.55;
-    }
+    #guide-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 10000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-card { background: var(--p-panel); border: 3px solid var(--p-white); box-shadow: 10px 10px 0 var(--p-red); max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative; }
+    .modal-step-box { background: #111; border-left: 4px solid var(--p-yellow); padding: 10px 12px; margin-bottom: 12px; font-size: 0.78rem; line-height: 1.55; }
     .modal-step-box strong { color: var(--p-yellow); }
-
-    /* Map Markers & Badges */
     .emoji-marker { font-size: 18px; text-align: center; line-height: 24px; background: var(--p-black); border-radius: 50%; border: 2px solid var(--p-yellow); box-shadow: 3px 3px 0 var(--p-red); }
     .crown-marker { font-size: 21px; text-align: center; line-height: 26px; background: var(--p-red); border-radius: 50%; border: 2px solid var(--p-white); box-shadow: 3px 3px 0 var(--p-black); }
     .bike-marker { font-size: 28px; text-align: center; line-height: 30px; filter: drop-shadow(3px 3px 0 var(--p-red)); }
     .photo-marker { border: 3px solid var(--p-white); box-shadow: 4px 4px 0 var(--p-red); object-fit: cover; transform: rotate(-3deg); }
-    
-    .flag-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      font-weight: 800;
-      color: var(--p-white);
-      white-space: nowrap;
-      border: 2px solid var(--p-white);
-      transform: translate(-50%, -100%) skewX(-10deg);
-      box-shadow: 4px 4px 0 var(--p-black);
-      letter-spacing: 0.05em;
-    }
+    .flag-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 0.75rem; font-weight: 800; color: var(--p-white); white-space: nowrap; border: 2px solid var(--p-white); transform: translate(-50%, -100%) skewX(-10deg); box-shadow: 4px 4px 0 var(--p-black); letter-spacing: 0.05em; }
     .flag-start { background: var(--p-red); color: var(--p-yellow); }
     .flag-goal { background: var(--p-black); color: var(--p-white); border-color: var(--p-yellow); box-shadow: 4px 4px 0 var(--p-red); }
     .flag-midnight { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); font-size: 0.7rem; padding: 2px 8px; }
-
-    /* Leaflet Popups */
-    .leaflet-popup-content-wrapper {
-      background: var(--p-black) !important;
-      color: var(--p-white) !important;
-      border: 2.5px solid var(--p-white) !important;
-      border-radius: 0 !important;
-      box-shadow: 7px 7px 0 var(--p-red) !important;
-    }
+    .leaflet-popup-content-wrapper { background: var(--p-black) !important; color: var(--p-white) !important; border: 2.5px solid var(--p-white) !important; border-radius: 0 !important; box-shadow: 7px 7px 0 var(--p-red) !important; }
     .leaflet-popup-tip { background: var(--p-red) !important; }
     .popup-content { font-size: 0.78rem; line-height: 1.45; width: 255px; color: var(--p-white); text-align: left; }
     .popup-title { font-weight: 800; color: var(--p-black); background: var(--p-yellow); padding: 3px 8px; margin-bottom: 6px; display: inline-block; }
@@ -797,102 +215,19 @@
     .btn-route-jump:hover { background: var(--p-yellow); color: var(--p-black); }
     .gmap-link { display: block; text-align: center; background: var(--p-white); color: var(--p-black) !important; text-decoration: none; padding: 6px; font-size: 0.76rem; margin-top: 6px; font-weight: 800; box-shadow: 3px 3px 0 var(--p-red); }
     .gmap-link:hover { background: var(--p-yellow); }
-
-    /* Floating Map Banner */
-    #floating-banner {
-      display: none;
-      position: absolute;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%) skewX(-6deg);
-      z-index: 998;
-      background: var(--p-black);
-      color: var(--p-white);
-      border: 2.5px solid var(--p-white);
-      padding: 10px 18px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      box-shadow: 7px 7px 0 var(--p-red);
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      max-width: 92%;
-    }
-    .banner-top {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      white-space: nowrap;
-    }
-    .banner-btn {
-      background: var(--p-red);
-      color: var(--p-white);
-      border: 2px solid var(--p-white);
-      padding: 4px 10px;
-      font-weight: 800;
-      font-size: 0.74rem;
-      cursor: pointer;
-    }
+    #floating-banner { display: none; position: absolute; top: 14px; left: 50%; transform: translateX(-50%) skewX(-6deg); z-index: 998; background: var(--p-black); color: var(--p-white); border: 2.5px solid var(--p-white); padding: 10px 18px; font-size: 0.8rem; font-weight: 800; box-shadow: 7px 7px 0 var(--p-red); flex-direction: column; align-items: center; gap: 6px; max-width: 92%; }
+    .banner-top { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .banner-btn { background: var(--p-red); color: var(--p-white); border: 2px solid var(--p-white); padding: 4px 10px; font-weight: 800; font-size: 0.74rem; cursor: pointer; }
     .banner-btn:hover { background: var(--p-yellow); color: var(--p-black); }
     .banner-btn.play { background: var(--p-yellow); color: var(--p-black); border-color: var(--p-black); }
     .banner-btn.play:hover { background: var(--p-white); }
-    #banner-day-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: center;
-      font-size: 0.72rem;
-    }
-    .day-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #222;
-      border: 1px solid var(--p-white);
-      padding: 2px 8px;
-      white-space: nowrap;
-    }
+    #banner-day-legend { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; font-size: 0.72rem; }
+    .day-pill { display: inline-flex; align-items: center; gap: 4px; background: #222; border: 1px solid var(--p-white); padding: 2px 8px; white-space: nowrap; }
     .day-dot { width: 10px; height: 10px; display: inline-block; border: 1px solid #fff; }
-
-    /* Custom Tooltip */
-    #custom-tooltip {
-      position: fixed;
-      display: none;
-      z-index: 9999;
-      background: rgba(12, 12, 12, 0.96);
-      color: var(--p-white);
-      border: 2px solid var(--p-yellow);
-      box-shadow: 5px 5px 0 var(--p-red);
-      padding: 9px 13px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      max-width: 310px;
-      line-height: 1.5;
-      pointer-events: none;
-      text-align: left;
-    }
-    #custom-tooltip .tt-title {
-      color: var(--p-yellow);
-      font-weight: 900;
-      border-bottom: 1px solid #444;
-      padding-bottom: 3px;
-      margin-bottom: 6px;
-      font-size: 0.77rem;
-    }
-    #custom-tooltip .tt-cond {
-      color: #ffffff;
-      font-size: 0.8rem;
-      font-weight: 800;
-      margin-bottom: 5px;
-      line-height: 1.35;
-    }
-    #custom-tooltip .tt-flavor {
-      color: #8c8c8c;
-      font-weight: 600;
-      font-size: 0.68rem;
-      line-height: 1.4;
-    }
-
+    #custom-tooltip { position: fixed; display: none; z-index: 9999; background: rgba(12, 12, 12, 0.96); color: var(--p-white); border: 2px solid var(--p-yellow); box-shadow: 5px 5px 0 var(--p-red); padding: 9px 13px; font-size: 0.75rem; font-weight: 600; max-width: 310px; line-height: 1.5; pointer-events: none; text-align: left; }
+    #custom-tooltip .tt-title { color: var(--p-yellow); font-weight: 900; border-bottom: 1px solid #444; padding-bottom: 3px; margin-bottom: 6px; font-size: 0.77rem; }
+    #custom-tooltip .tt-cond { color: #ffffff; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; line-height: 1.35; }
+    #custom-tooltip .tt-flavor { color: #8c8c8c; font-weight: 600; font-size: 0.68rem; line-height: 1.4; }
     @media (max-width: 768px) {
       #sidebar { position: absolute; top: 0; left: 0; width: 92vw; height: 100vh; }
       #sidebar.closed { display: none; }
@@ -903,37 +238,29 @@
 </head>
 <body>
   <button id="mobile-open-btn" onclick="toggleSidebar(true)">☰ MENU</button>
-
   <div id="custom-tooltip"></div>
 
-  <!-- Export Guide Modal (iOS & Android) -->
   <div id="guide-modal" onclick="if(event.target===this) toggleGuideModal(false)">
     <div class="modal-card">
       <div class="section-header-row">
         <div class="section-title">📖 HOW TO EXPORT TIMELINE</div>
         <button type="button" class="btn-icon" onclick="toggleGuideModal(false)">✕</button>
       </div>
-      <p style="font-size:0.78rem; color:#ccc; margin-top:0;">
-        本ツールは <strong>Android / iOS（iPhone）の両形式に対応</strong> しています。お使いのスマートフォンの手順に従ってJSONファイルを出力してください。
-      </p>
-
+      <p style="font-size:0.78rem; color:#ccc; margin-top:0;">本ツールは <strong>Android / iOS（iPhone）の両形式に対応</strong> しています。以下の手順に従ってJSONファイルを出力してください。</p>
       <div class="modal-step-box">
         <strong>🤖 Android の場合（設定アプリ / Googleマップから出力）</strong><br>
-        1. 端末の「設定」アプリ ➔「位置情報」➔「位置情報サービス」➔「タイムライン」を開きます（またはGoogleマップ右上のアイコン ➔「タイムライン」➔ 右上の「…」➔「位置情報とプライバシーの設定」）。<br>
-        2. <strong>「タイムライン データをエクスポート」</strong>をタップし、保存された <code>タイムライン.json</code> を選択してください。
+        1. 端末の「設定」➔「位置情報」➔「位置情報サービス」➔「タイムライン」を開きます（またはGoogleマップ右上のアイコン ➔「タイムライン」➔ 右上の「…」➔「位置情報とプライバシーの設定」）。<br>
+        2. <strong>「タイムライン データをエクスポート」</strong>をタップし、保存されたJSONファイルを選択してください。
       </div>
-
       <div class="modal-step-box">
         <strong>🍎 iOS (iPhone / iPad) の場合（Googleマップから出力）</strong><br>
         1. Googleマップアプリを開き、右上のプロフィールアイコン ➔「タイムライン」をタップします。<br>
-        2. 右上の「…（メニュー）」➔「位置情報とプライバシーの設定」を開きます。<br>
-        3. 下部にある<strong>「タイムライン データをエクスポート」</strong>をタップし、「ファイルに保存」で保存したJSONファイルを選択してください。
+        2. 右上の「…」➔「位置情報とプライバシーの設定」を開きます。<br>
+        3. <strong>「タイムライン データをエクスポート」</strong>をタップし、「ファイルに保存」したJSONを選択してください。
       </div>
-
       <div style="font-size:0.72rem; color:var(--p-cyan); background:#111; padding:8px 10px; border:1px solid #333; margin-bottom:12px;">
         🔒 <strong>PRIVACY POLICY:</strong> 読み込んだJSONデータや写真はお使いのブラウザ内（ローカルメモリ）でのみ処理され、外部サーバーへ送信・保存されることは一切ありません。
       </div>
-
       <button type="button" class="btn" style="margin-bottom:0;" onclick="toggleGuideModal(false)">CLOSE GUIDE</button>
     </div>
   </div>
@@ -947,7 +274,6 @@
       <button id="toggle-btn" onclick="toggleSidebar(false)">× MAP</button>
     </div>
 
-    <!-- Navigation Deck -->
     <div class="tabs-deck">
       <div class="tabs-row-top">
         <button type="button" class="tab-btn active" data-tab="tab-main" onclick="switchTab('tab-main', this)">📊 CONFIG</button>
@@ -965,17 +291,15 @@
     <!-- Tab 1: CONFIG -->
     <div id="tab-main" class="tab-content active">
       <div class="box">
-        <div class="section-header-row">
-          <div class="section-title">📂 DATA SOURCE</div>
-        </div>
+        <div class="section-header-row"><div class="section-title">📂 DATA SOURCE</div></div>
         <button type="button" class="btn btn-guide" onclick="toggleGuideModal(true)">📖 HOW TO EXPORT JSON (iOS / Android)</button>
         <label>TIMELINE.JSON <span class="help-mark" data-tip-title="TIMELINE JSON FILE" data-tip="AndroidおよびiOS（iPhone）からエクスポートしたタイムラインJSONファイルに対応しています。すべてのデータはブラウザ内のみで安全に処理されます。">?</span></label>
         <input type="file" id="fileInput" accept=".json,application/json">
         
-        <label>TARGET PERIOD <span class="help-mark" data-tip-title="TARGET PERIOD" data-tip="地図上に表示・集計する対象の年を選択します。下部のYEARLY LOGの年をクリックしても切り替えられます。">?</span></label>
+        <label>TARGET PERIOD <span class="help-mark" data-tip-title="TARGET PERIOD" data-tip="地図上に表示・集計する対象の年を選択します。初期状態はALL TIME（全期間）です。下部のYEARLY LOGの年をクリックしても切り替えられます。">?</span></label>
         <select id="yearFilter" disabled>
+          <option value="all" selected>ALL TIME</option>
           <option value="recent10">LAST 10 YEARS (2017 - 2026)</option>
-          <option value="all">ALL TIME</option>
         </select>
 
         <label>DATE RANGE <span class="help-mark" data-tip-title="DATE RANGE" data-tip="特定の日付や連休期間（開始日〜終了日）をピンポイントで指定してルートを抽出します。">?</span></label>
@@ -986,9 +310,7 @@
       </div>
 
       <div class="box">
-        <div class="section-header-row">
-          <div class="section-title">🎨 VISUAL &amp; ENGINE</div>
-        </div>
+        <div class="section-header-row"><div class="section-title">🎨 VISUAL &amp; ENGINE</div></div>
         <label class="checkbox-label" style="background:rgba(230,0,18,0.22); border:1px solid var(--p-red); padding:7px 8px; margin-bottom:10px; justify-content:space-between;">
           <span style="display:flex; align-items:center;"><input type="checkbox" id="phantomMapFilter" checked onchange="toggleMapTheme()"> 🃏 <strong>PHANTOM DARK MAP</strong></span>
           <span class="help-mark" data-tip-title="PHANTOM DARK MAP" data-tip="背景の地図タイルをダークモード（黒×赤基調）に反転させ、走行ルートのネオンカラーを際立たせます。">?</span>
@@ -1001,9 +323,7 @@
           <option value="standard">🃏 CRIMSON LINE</option>
           <option value="night">🌙 TIME ZONE (DAY / EVE / NIGHT)</option>
         </select>
-        <div class="heat-legend" id="heatLegend">
-          <span>RARE</span><div class="heat-grad"></div><span>HOT</span>
-        </div>
+        <div class="heat-legend" id="heatLegend"><span>RARE</span><div class="heat-grad"></div><span>HOT</span></div>
 
         <label>ODOMETER FACTOR <span class="help-mark" data-tip-title="ODOMETER FACTOR" data-tip="座標間の直線距離に対し、実際の道路のカーブや迂回分を補正する倍率を指定します（一般的な実走メーター目安: 1.10〜1.20）。">?</span></label>
         <div class="inline-row">
@@ -1056,9 +376,7 @@
         </div>
       </div>
 
-      <div id="stats">
-        <p class="note">SELECT TIMELINE.JSON TO START</p>
-      </div>
+      <div id="stats"><p class="note">SELECT TIMELINE.JSON TO START</p></div>
     </div>
 
     <!-- Tab 2: 47 PREFECTURES -->
@@ -1083,18 +401,9 @@
             <span id="pref-board-status" style="font-size:0.72rem; color:#aaa;">CLICK TO FILTER PINS</span>
           </div>
           <div class="pref-stats-row">
-            <div class="pref-stat-cell">
-              <span class="pref-stat-label">🏨 STAY</span>
-              <span class="pref-stat-num" id="pref-board-stay">-</span>
-            </div>
-            <div class="pref-stat-cell">
-              <span class="pref-stat-label">📍 VISIT</span>
-              <span class="pref-stat-num" id="pref-board-visit">-</span>
-            </div>
-            <div class="pref-stat-cell">
-              <span class="pref-stat-label">💨 PASS</span>
-              <span class="pref-stat-num" id="pref-board-pass">-</span>
-            </div>
+            <div class="pref-stat-cell"><span class="pref-stat-label">🏨 STAY</span><span class="pref-stat-num" id="pref-board-stay">-</span></div>
+            <div class="pref-stat-cell"><span class="pref-stat-label">📍 VISIT</span><span class="pref-stat-num" id="pref-board-visit">-</span></div>
+            <div class="pref-stat-cell"><span class="pref-stat-label">💨 PASS</span><span class="pref-stat-num" id="pref-board-pass">-</span></div>
           </div>
           <button type="button" id="clearPrefFilterBtn" class="btn btn-sub" style="display:none; margin-top:8px; margin-bottom:0; background:var(--p-red); color:#fff;" onclick="clearPrefFilter()">× CLEAR PREF FILTER (SHOW ALL PINS)</button>
         </div>
@@ -1106,8 +415,16 @@
     <div id="tab-rank" class="tab-content">
       <div class="box">
         <div class="section-header-row">
-          <div class="section-title">⚙️ RECORDS SCOPE</div>
+          <div class="section-title">📸 SHARE RECORD CARD</div>
+          <span class="help-mark" data-tip-title="RECORD IMAGE GENERATOR" data-tip="現在の総走行距離、47都道府県制覇状況（プライバシー保護のため県名と達成色のみ表示）、最長・最遠ランキング、極点記録、および全61トロフィーの達成状況を1枚の高解像度画像（PNG）として保存します。">?</span>
         </div>
+        <label>RIDER / TRAVELER NAME (画像に表示する名前)</label>
+        <input type="text" id="riderNameInput" value="PHANTOM RIDER" placeholder="例: RIDER NAME">
+        <button type="button" class="btn btn-guide" style="margin-bottom:0; font-size:0.78rem; padding:9px;" onclick="generateRecordImage()">📸 GENERATE RECORD IMAGE (戦績を1枚の画像で保存)</button>
+      </div>
+
+      <div class="box">
+        <div class="section-header-row"><div class="section-title">⚙️ RECORDS SCOPE</div></div>
         <label>FARTHEST / EXTREME AREA FILTER <span class="help-mark" data-tip-title="RECORDS AREA FILTER" data-tip="最遠到達ランキングおよび東西南北極点の対象エリアを選択します。<br>・4 MAIN ISLANDS: 本州・北海道・四国・九州の4島のみを対象とし、航空機移動になりやすい沖縄・離島・海外を除外します。<br>・ALL JAPAN: 沖縄や離島を含む日本全域を対象にします。<br>・WORLDWIDE: 海外を含む全データを対象にします。">?</span></label>
         <select id="recordScope">
           <option value="mainland" selected>🏍️ 4 MAIN ISLANDS</option>
@@ -1165,9 +482,7 @@
     <!-- Tab 4: REPLAY & PHOTO -->
     <div id="tab-play" class="tab-content">
       <div class="box">
-        <div class="section-header-row">
-          <div class="section-title">▶️ ROUTE TIMELAPSE</div>
-        </div>
+        <div class="section-header-row"><div class="section-title">▶️ ROUTE TIMELAPSE</div></div>
         <div id="replayTargetInfo" class="note" style="color:var(--p-cyan); margin-bottom:8px;">TARGET: ACTIVE MAP ROUTE</div>
         <label>PLAYBACK SPEED <span class="help-mark" data-tip-title="PLAYBACK SPEED" data-tip="タイムラプス再生の進行速度を選択します。1日分のルート再生にはSLOWまたはNORMALが適しています。">?</span></label>
         <select id="playSpeed">
@@ -1196,7 +511,7 @@
 
         <div class="note" style="color:#d1d5db; background:#111; padding:7px 9px; border-left:3px solid var(--p-yellow); margin-bottom:6px;">
           💾 <strong>写真の保存・バックアップについて：</strong><br>
-          配置した写真はサムネイル化されブラウザに一時保存されますが、キャッシュ削除等で消えるのを防ぐため、配置後は<strong>「📝 LOGBOOK」タブの『💾 EXPORT JSON』からファイルとして保存</strong>しておくことをおすすめします（次回IMPORTで写真ごと復元できます）。
+          ページをリロードすると配置した写真はリセットされます。配置した写真を残したい場合は、<strong>「📝 LOGBOOK」タブの『💾 EXPORT JSON』からファイルとして保存</strong>してください（次回IMPORTで写真ごと復元できます）。
         </div>
         <button type="button" id="clearPhotosBtn" class="btn btn-sub" style="display:none; margin-top:4px;" onclick="clearMappedPhotos()">🗑️ CLEAR MAPPED PHOTOS</button>
         <div id="photoStatus" class="note" style="color:var(--p-yellow);"></div>
@@ -1249,8 +564,7 @@
     });
     document.addEventListener('mousemove', function(e) {
       if (tooltipEl.style.display === 'block') {
-        let x = e.clientX + 16;
-        let y = e.clientY + 16;
+        let x = e.clientX + 16, y = e.clientY + 16;
         if (x + 320 > window.innerWidth) x = Math.max(10, e.clientX - 320);
         if (y + 140 > window.innerHeight) y = Math.max(10, e.clientY - 120);
         tooltipEl.style.left = x + 'px';
@@ -1258,24 +572,18 @@
       }
     });
     document.addEventListener('mouseout', function(e) {
-      const target = e.target.closest('[data-tip]');
-      if (target) tooltipEl.style.display = 'none';
+      if (e.target.closest('[data-tip]')) tooltipEl.style.display = 'none';
     });
 
-    // UI & Tab Navigation
     const TAB_ORDER = ['tab-main', 'tab-pref', 'tab-rank', 'tab-play', 'tab-memo'];
 
     window.toggleMapTheme = function() {
       const isPhantom = document.getElementById('phantomMapFilter').checked;
-      const mapEl = document.getElementById('map');
-      if (isPhantom) mapEl.classList.add('phantom-map-filter');
-      else mapEl.classList.remove('phantom-map-filter');
+      document.getElementById('map').classList.toggle('phantom-map-filter', isPhantom);
     };
 
     window.toggleSidebar = function(open) {
-      const sb = document.getElementById('sidebar');
-      if (open) sb.classList.remove('closed');
-      else sb.classList.add('closed');
+      document.getElementById('sidebar').classList.toggle('closed', !open);
       if (window.mapObj) setTimeout(() => window.mapObj.invalidateSize(), 200);
     };
 
@@ -1284,19 +592,14 @@
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
       const target = document.getElementById(tabId);
       if (target) target.classList.add('active');
-      if (btn) {
-        btn.classList.add('active');
-      } else {
-        const matchBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-        if (matchBtn) matchBtn.classList.add('active');
-      }
+      const matchBtn = btn || document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (matchBtn) matchBtn.classList.add('active');
     };
 
     window.cycleTab = function(dir) {
       const activeBtn = document.querySelector('.tab-btn.active');
       const curId = activeBtn ? activeBtn.getAttribute('data-tab') : 'tab-main';
-      let idx = TAB_ORDER.indexOf(curId);
-      idx = (idx + dir + TAB_ORDER.length) % TAB_ORDER.length;
+      let idx = (TAB_ORDER.indexOf(curId) + dir + TAB_ORDER.length) % TAB_ORDER.length;
       switchTab(TAB_ORDER[idx]);
     };
 
@@ -1311,47 +614,28 @@
       if (!select || select.disabled) return;
       document.getElementById('dateStart').value = '';
       document.getElementById('dateEnd').value = '';
-      if (select.value === String(yearStr)) {
-        select.value = 'all';
-      } else {
-        select.value = String(yearStr);
-      }
+      select.value = (select.value === String(yearStr)) ? 'all' : String(yearStr);
       renderData();
     };
 
-    // Prefecture Pin Filter
     let selectedPrefFilter = null;
-
     window.filterByPref = function(prefName, stay, visit, passDays) {
       showPrefDetail(prefName, stay, visit, passDays);
-      if (selectedPrefFilter === prefName) {
-        selectedPrefFilter = null;
-      } else {
-        selectedPrefFilter = prefName;
-      }
+      selectedPrefFilter = (selectedPrefFilter === prefName) ? null : prefName;
       renderData();
     };
+    window.clearPrefFilter = function() { selectedPrefFilter = null; renderData(); };
+    window.resetAllMapFilters = function() { selectedPrefFilter = null; renderData(); };
 
-    window.clearPrefFilter = function() {
-      selectedPrefFilter = null;
-      renderData();
-    };
-
-    window.resetAllMapFilters = function() {
-      selectedPrefFilter = null;
-      renderData();
-    };
-
-    // LocalStorage Management
     let savedMemos = {};
     let savedPhotos = [];
     let ignoredDays = {};
     let ignoredSpots = {};
+    let latestRecordSnapshot = null;
+
     try {
       const stored = localStorage.getItem('timeline_viewer_memos_v9');
       if (stored) savedMemos = JSON.parse(stored);
-      const storedPhotos = localStorage.getItem('timeline_viewer_photos_v10');
-      if (storedPhotos) savedPhotos = JSON.parse(storedPhotos);
       const storedIgnored = localStorage.getItem('timeline_viewer_ignored_days_v9');
       if (storedIgnored) ignoredDays = JSON.parse(storedIgnored);
       const storedSpots = localStorage.getItem('timeline_viewer_ignored_spots_v9');
@@ -1361,9 +645,6 @@
     function saveMemosToStorage() {
       try { localStorage.setItem('timeline_viewer_memos_v9', JSON.stringify(savedMemos)); } catch (e) {}
     }
-    function savePhotosToStorage() {
-      try { localStorage.setItem('timeline_viewer_photos_v10', JSON.stringify(savedPhotos)); } catch (e) {}
-    }
     function saveIgnoredToStorage() {
       try {
         localStorage.setItem('timeline_viewer_ignored_days_v9', JSON.stringify(ignoredDays));
@@ -1371,36 +652,16 @@
       } catch (e) {}
     }
 
-    window.ignoreDay = function(keyStr) {
-      ignoredDays[keyStr] = true;
-      saveIgnoredToStorage();
-      renderData();
-    };
-    window.ignoreSpot = function(spotKey) {
-      ignoredSpots[spotKey] = true;
-      saveIgnoredToStorage();
-      renderData();
-    };
-    window.resetAllIgnored = function() {
-      ignoredDays = {};
-      ignoredSpots = {};
-      saveIgnoredToStorage();
-      renderData();
-    };
+    window.ignoreDay = function(keyStr) { ignoredDays[keyStr] = true; saveIgnoredToStorage(); renderData(); };
+    window.ignoreSpot = function(spotKey) { ignoredSpots[spotKey] = true; saveIgnoredToStorage(); renderData(); };
+    window.resetAllIgnored = function() { ignoredDays = {}; ignoredSpots = {}; saveIgnoredToStorage(); renderData(); };
 
-    // Map Initialization (Canvas Renderer)
     const gsiPale = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { attribution: 'GSI Pale', maxZoom: 18 });
     const gsiStd = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { attribution: 'GSI Std', maxZoom: 18 });
     const gsiPhoto = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', { attribution: 'GSI Photo', maxZoom: 18 });
 
     const canvasRenderer = L.canvas({ padding: 0.5 });
-    const map = L.map('map', {
-      center: [36.2048, 138.2529],
-      zoom: 5,
-      layers: [gsiPale],
-      preferCanvas: true,
-      renderer: canvasRenderer
-    });
+    const map = L.map('map', { center: [36.2048, 138.2529], zoom: 5, layers: [gsiPale], preferCanvas: true, renderer: canvasRenderer });
     window.mapObj = map;
     L.control.layers({ "GSI PALE": gsiPale, "GSI STANDARD": gsiStd, "SATELLITE": gsiPhoto }).addTo(map);
 
@@ -1419,27 +680,19 @@
     let sessionRoutesMap = {};
     let dateToSessionsMap = {};
     let animTimer = null;
-
     let homeCoords = null;
 
-    const DAY_PALETTE = [
-      '#e60012', // DAY 1: RED
-      '#00e5ff', // DAY 2: CYAN
-      '#ffe600', // DAY 3: YELLOW
-      '#d946ef', // DAY 4: MAGENTA
-      '#00ff88', // DAY 5: GREEN
-      '#ff6600'  // DAY 6: ORANGE
-    ];
+    const DAY_PALETTE = ['#e60012', '#00e5ff', '#ffe600', '#d946ef', '#00ff88', '#ff6600'];
 
     const EXTREME_CAPES = {
-      oma:      { lat: 41.5464, lon: 140.9125, radiusKm: 12.0 },
-      todoga:   { lat: 39.5483, lon: 142.0725, radiusKm: 12.0 },
-      shiono:   { lat: 33.4339, lon: 135.7583, radiusKm: 12.0 },
-      bishano:  { lat: 34.1114, lon: 130.8583, radiusKm: 12.0 },
-      soya:     { lat: 45.5229, lon: 141.9366, radiusKm: 12.0 },
-      nosappu:  { lat: 43.3853, lon: 145.8164, radiusKm: 12.0 },
-      sata:     { lat: 30.9942, lon: 130.6606, radiusKm: 12.0 },
-      kouzaki:  { lat: 33.2153, lon: 129.5536, radiusKm: 12.0 }
+      oma: { lat: 41.5464, lon: 140.9125, radiusKm: 12.0 },
+      todoga: { lat: 39.5483, lon: 142.0725, radiusKm: 12.0 },
+      shiono: { lat: 33.4339, lon: 135.7583, radiusKm: 12.0 },
+      bishano: { lat: 34.1114, lon: 130.8583, radiusKm: 12.0 },
+      soya: { lat: 45.5229, lon: 141.9366, radiusKm: 12.0 },
+      nosappu: { lat: 43.3853, lon: 145.8164, radiusKm: 12.0 },
+      sata: { lat: 30.9942, lon: 130.6606, radiusKm: 12.0 },
+      kouzaki: { lat: 33.2153, lon: 129.5536, radiusKm: 12.0 }
     };
 
     function isInsideJapan(lat, lon) {
@@ -1448,23 +701,13 @@
       if (lat >= 38.5 && lat <= 45.0 && lon < 135.0) return false;
       return true;
     }
-
     function isOkinawaOrRemoteIsland(lat, lon) {
-      if (lat < 30.95) return true;
-      if (lat < 34.0 && lon > 139.0) return true;
-      return false;
+      return (lat < 30.95) || (lat < 34.0 && lon > 139.0);
     }
-
     function isTokyo23OrHomeArea(lat, lon) {
-      const inTokyo23 = (lat >= 35.53 && lat <= 35.82 && lon >= 139.56 && lon <= 139.92);
-      if (inTokyo23) return true;
-      if (homeCoords) {
-        const distFromHome = calcDistanceKm(homeCoords[0], homeCoords[1], lat, lon);
-        if (distFromHome <= 15.0) return true;
-      }
-      return false;
+      if (lat >= 35.53 && lat <= 35.82 && lon >= 139.56 && lon <= 139.92) return true;
+      return homeCoords ? (calcDistanceKm(homeCoords[0], homeCoords[1], lat, lon) <= 15.0) : false;
     }
-
     function isDeepOceanPoint(lat, lon) {
       if (lat >= 36.5 && lat <= 41.8 && lon > 142.3) return true;
       if (lat >= 30.0 && lat <= 33.2 && lon >= 132.0 && lon <= 141.0) return true;
@@ -1472,23 +715,15 @@
       if (lat >= 38.2 && lat <= 41.2 && lon >= 132.0 && lon <= 138.0) return true;
       return false;
     }
-
-    function isFerrySegment(pt1, pt2, rawDist, hours) {
+    function isFerrySegment(pt1, pt2, rawDist) {
       if (isDeepOceanPoint(pt1[0], pt1[1]) || isDeepOceanPoint(pt2[0], pt2[1])) return true;
-      const midLat = (pt1[0] + pt2[0]) * 0.5;
-      const midLon = (pt1[1] + pt2[1]) * 0.5;
+      const midLat = (pt1[0] + pt2[0]) * 0.5, midLon = (pt1[1] + pt2[1]) * 0.5;
       if (isDeepOceanPoint(midLat, midLon)) return true;
-
-      const isHokkaido1 = (pt1[0] >= 41.33);
-      const isHokkaido2 = (pt2[0] >= 41.33);
-      if (isHokkaido1 !== isHokkaido2) return true;
-
+      if ((pt1[0] >= 41.33) !== (pt2[0] >= 41.33)) return true;
       if (midLat >= 35.15 && midLat <= 35.25 && midLon >= 139.73 && midLon <= 139.81 && rawDist >= 6.0) return true;
       if (midLat >= 34.48 && midLat <= 34.62 && midLon >= 136.86 && midLon <= 137.03 && rawDist >= 10.0) return true;
       if (midLat >= 34.90 && midLat <= 35.02 && midLon >= 138.55 && midLon <= 138.75 && rawDist >= 12.0) return true;
-      if (rawDist > 65.0) return true;
-
-      return false;
+      return rawDist > 65.0;
     }
 
     const PREFS = [
@@ -1541,194 +776,31 @@
       { name: "沖縄", reg: "OKINAWA", side: "WEST", minLat: 24.0, maxLat: 27.9, minLon: 122.9, maxLon: 131.35 }
     ];
 
-    function initPrefGrid() {
-      let html = '';
-      PREFS.forEach(p => { html += `<div class="pref-badge">${p.name}</div>`; });
-      document.getElementById('pref-list').innerHTML = html;
-    }
-    initPrefGrid();
+    document.getElementById('pref-list').innerHTML = PREFS.map(p => `<div class="pref-badge">${p.name}</div>`).join('');
 
     function calcDistanceKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     function parsePoint(pointInput) {
       if (!pointInput) return null;
-      if (Array.isArray(pointInput) && pointInput.length === 2) {
-        return [parseFloat(pointInput[0]), parseFloat(pointInput[1])];
-      }
+      if (Array.isArray(pointInput) && pointInput.length === 2) return [parseFloat(pointInput[0]), parseFloat(pointInput[1])];
       if (typeof pointInput === 'object') {
         if (pointInput.latLng) return parsePoint(pointInput.latLng);
         if (pointInput.point) return parsePoint(pointInput.point);
-        if (pointInput.latitudeE7 !== undefined && pointInput.longitudeE7 !== undefined) {
-          return [pointInput.latitudeE7 / 1e7, pointInput.longitudeE7 / 1e7];
-        }
-        if (pointInput.latitude !== undefined && pointInput.longitude !== undefined) {
-          return [parseFloat(pointInput.latitude), parseFloat(pointInput.longitude)];
-        }
+        if (pointInput.latitudeE7 !== undefined && pointInput.longitudeE7 !== undefined) return [pointInput.latitudeE7 / 1e7, pointInput.longitudeE7 / 1e7];
+        if (pointInput.latitude !== undefined && pointInput.longitude !== undefined) return [parseFloat(pointInput.latitude), parseFloat(pointInput.longitude)];
         return null;
       }
       if (typeof pointInput === 'string') {
-        const cleaned = pointInput.replace(/^geo:/i, '').replace(/°/g, '').trim();
-        const parts = cleaned.split(',');
+        const parts = pointInput.replace(/^geo:/i, '').replace(/°/g, '').trim().split(',');
         if (parts.length < 2) return null;
-        const lat = parseFloat(parts[0].trim());
-        const lon = parseFloat(parts[1].trim());
-        if (isNaN(lat) || isNaN(lon)) return null;
-        return [lat, lon];
+        const lat = parseFloat(parts[0].trim()), lon = parseFloat(parts[1].trim());
+        return (isNaN(lat) || isNaN(lon)) ? null : [lat, lon];
       }
       return null;
-    }
-
-    function normalizeTimelineData(json) {
-      let sourceArray = [];
-      if (Array.isArray(json)) {
-        sourceArray = json;
-      } else if (json && Array.isArray(json.semanticSegments)) {
-        sourceArray = json.semanticSegments;
-      } else if (json && Array.isArray(json.timelineObjects)) {
-        sourceArray = json.timelineObjects;
-      } else if (json && Array.isArray(json.rawSignals)) {
-        sourceArray = json.rawSignals;
-      }
-
-      const normalized = [];
-      allTimelinePointsForPhotoSync = [];
-
-      sourceArray.forEach(item => {
-        if (!item) return;
-
-        if (item.placeVisit) {
-          const pv = item.placeVisit;
-          const loc = pv.location || {};
-          const pt = parsePoint(loc);
-          const startTime = pv.duration ? pv.duration.startTimestamp : null;
-          const endTime = pv.duration ? pv.duration.endTimestamp : startTime;
-          if (pt && startTime) {
-            const ms = new Date(startTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
-            normalized.push({
-              startTime: startTime,
-              endTime: endTime,
-              visit: {
-                topCandidate: {
-                  placeId: loc.placeId || "",
-                  semanticType: loc.semanticType || "UNKNOWN",
-                  placeLocation: { latLng: `${pt[0]}, ${pt[1]}` }
-                }
-              }
-            });
-          }
-          return;
-        }
-        if (item.activitySegment) {
-          const as = item.activitySegment;
-          const startTime = as.duration ? as.duration.startTimestamp : null;
-          const endTime = as.duration ? as.duration.endTimestamp : startTime;
-          const pathPts = [];
-          if (as.startLocation) {
-            const p1 = parsePoint(as.startLocation);
-            if (p1 && startTime) pathPts.push({ point: `${p1[0]}, ${p1[1]}`, time: startTime });
-          }
-          if (as.waypointPath && Array.isArray(as.waypointPath.waypoints)) {
-            as.waypointPath.waypoints.forEach(wp => {
-              const p = parsePoint(wp);
-              if (p) pathPts.push({ point: `${p[0]}, ${p[1]}`, time: startTime });
-            });
-          }
-          if (as.simplifiedRawPath && Array.isArray(as.simplifiedRawPath.points)) {
-            as.simplifiedRawPath.points.forEach(rp => {
-              const p = parsePoint(rp);
-              if (p) pathPts.push({ point: `${p[0]}, ${p[1]}`, time: rp.timestamp || startTime });
-            });
-          }
-          if (as.endLocation) {
-            const p2 = parsePoint(as.endLocation);
-            if (p2 && endTime) pathPts.push({ point: `${p2[0]}, ${p2[1]}`, time: endTime });
-          }
-          if (pathPts.length > 0 && startTime) {
-            pathPts.forEach(pp => {
-              const pt = parsePoint(pp.point);
-              const ms = new Date(pp.time).getTime();
-              if (pt && !isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
-            });
-            normalized.push({ startTime: startTime, endTime: endTime, timelinePath: pathPts });
-          }
-          return;
-        }
-
-        const startTime = item.startTime;
-        const endTime = item.endTime || startTime;
-        if (!startTime) return;
-
-        const normSeg = { startTime: startTime, endTime: endTime };
-
-        if (item.visit) {
-          const top = item.visit.topCandidate || item.visit;
-          const locSource = top.placeLocation || item.visit.placeLocation || top;
-          const pt = parsePoint(locSource);
-          if (pt) {
-            const ms = new Date(startTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
-            let semType = top.semanticType || item.visit.semanticType || "UNKNOWN";
-            if (semType === "Inferred Home" || semType === "TYPE_HOME") semType = "HOME";
-            normSeg.visit = {
-              topCandidate: {
-                placeId: top.placeID || top.placeId || "",
-                semanticType: semType,
-                placeLocation: { latLng: `${pt[0]}, ${pt[1]}` }
-              }
-            };
-          }
-        }
-
-        if (Array.isArray(item.timelinePath) && item.timelinePath.length > 0) {
-          const baseMs = new Date(startTime).getTime();
-          const normPath = [];
-          item.timelinePath.forEach(pObj => {
-            const pt = parsePoint(pObj.point || pObj);
-            if (!pt) return;
-            let tStr = pObj.time;
-            if (!tStr && pObj.durationMinutesOffsetFromStartTime !== undefined && !isNaN(baseMs)) {
-              const offsetMin = parseFloat(pObj.durationMinutesOffsetFromStartTime);
-              tStr = new Date(baseMs + offsetMin * 60000).toISOString();
-            }
-            const finalTime = tStr || startTime;
-            const ms = new Date(finalTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: pt });
-            normPath.push({ point: `${pt[0]}, ${pt[1]}`, time: finalTime });
-          });
-          if (normPath.length > 0) normSeg.timelinePath = normPath;
-        } else if (item.activity) {
-          const actPts = [];
-          const sPt = parsePoint(item.activity.start);
-          const ePt = parsePoint(item.activity.end);
-          if (sPt) {
-            const ms = new Date(startTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: sPt });
-            actPts.push({ point: `${sPt[0]}, ${sPt[1]}`, time: startTime });
-          }
-          if (ePt) {
-            const ms = new Date(endTime).getTime();
-            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms: ms, dateStr: formatLocalDate(new Date(ms)), pt: ePt });
-            actPts.push({ point: `${ePt[0]}, ${ePt[1]}`, time: endTime });
-          }
-          if (actPts.length > 0) normSeg.timelinePath = actPts;
-        }
-
-        if (normSeg.visit || normSeg.timelinePath) {
-          normalized.push(normSeg);
-        }
-      });
-
-      allTimelinePointsForPhotoSync.sort((a, b) => a.ms - b.ms);
-      return normalized;
     }
 
     function formatDateTime(isoStr) {
@@ -1742,6 +814,83 @@
       return `${dObj.getFullYear()}-${String(dObj.getMonth()+1).padStart(2,'0')}-${String(dObj.getDate()).padStart(2,'0')}`;
     }
 
+    function normalizeTimelineData(json) {
+      let sourceArray = Array.isArray(json) ? json : (json?.semanticSegments || json?.timelineObjects || json?.rawSignals || []);
+      const normalized = [];
+      allTimelinePointsForPhotoSync = [];
+
+      sourceArray.forEach(item => {
+        if (!item) return;
+        if (item.placeVisit) {
+          const pv = item.placeVisit, loc = pv.location || {}, pt = parsePoint(loc);
+          const startTime = pv.duration?.startTimestamp, endTime = pv.duration?.endTimestamp || startTime;
+          if (pt && startTime) {
+            const ms = new Date(startTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms, dateStr: formatLocalDate(new Date(ms)), pt });
+            normalized.push({ startTime, endTime, visit: { topCandidate: { placeId: loc.placeId || "", semanticType: loc.semanticType || "UNKNOWN", placeLocation: { latLng: `${pt[0]}, ${pt[1]}` } } } });
+          }
+          return;
+        }
+        if (item.activitySegment) {
+          const as = item.activitySegment, startTime = as.duration?.startTimestamp, endTime = as.duration?.endTimestamp || startTime;
+          const pathPts = [];
+          const p1 = parsePoint(as.startLocation);
+          if (p1 && startTime) pathPts.push({ point: `${p1[0]}, ${p1[1]}`, time: startTime });
+          if (Array.isArray(as.waypointPath?.waypoints)) as.waypointPath.waypoints.forEach(wp => { const p = parsePoint(wp); if (p) pathPts.push({ point: `${p[0]}, ${p[1]}`, time: startTime }); });
+          if (Array.isArray(as.simplifiedRawPath?.points)) as.simplifiedRawPath.points.forEach(rp => { const p = parsePoint(rp); if (p) pathPts.push({ point: `${p[0]}, ${p[1]}`, time: rp.timestamp || startTime }); });
+          const p2 = parsePoint(as.endLocation);
+          if (p2 && endTime) pathPts.push({ point: `${p2[0]}, ${p2[1]}`, time: endTime });
+          if (pathPts.length > 0 && startTime) {
+            pathPts.forEach(pp => { const pt = parsePoint(pp.point), ms = new Date(pp.time).getTime(); if (pt && !isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms, dateStr: formatLocalDate(new Date(ms)), pt }); });
+            normalized.push({ startTime, endTime, timelinePath: pathPts });
+          }
+          return;
+        }
+
+        const startTime = item.startTime, endTime = item.endTime || startTime;
+        if (!startTime) return;
+        const normSeg = { startTime, endTime };
+
+        if (item.visit) {
+          const top = item.visit.topCandidate || item.visit;
+          const pt = parsePoint(top.placeLocation || item.visit.placeLocation || top);
+          if (pt) {
+            const ms = new Date(startTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms, dateStr: formatLocalDate(new Date(ms)), pt });
+            let semType = top.semanticType || item.visit.semanticType || "UNKNOWN";
+            if (semType === "Inferred Home" || semType === "TYPE_HOME") semType = "HOME";
+            normSeg.visit = { topCandidate: { placeId: top.placeID || top.placeId || "", semanticType: semType, placeLocation: { latLng: `${pt[0]}, ${pt[1]}` } } };
+          }
+        }
+
+        if (Array.isArray(item.timelinePath) && item.timelinePath.length > 0) {
+          const baseMs = new Date(startTime).getTime(), normPath = [];
+          item.timelinePath.forEach(pObj => {
+            const pt = parsePoint(pObj.point || pObj);
+            if (!pt) return;
+            let tStr = pObj.time;
+            if (!tStr && pObj.durationMinutesOffsetFromStartTime !== undefined && !isNaN(baseMs)) {
+              tStr = new Date(baseMs + parseFloat(pObj.durationMinutesOffsetFromStartTime) * 60000).toISOString();
+            }
+            const finalTime = tStr || startTime, ms = new Date(finalTime).getTime();
+            if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms, dateStr: formatLocalDate(new Date(ms)), pt });
+            normPath.push({ point: `${pt[0]}, ${pt[1]}`, time: finalTime });
+          });
+          if (normPath.length > 0) normSeg.timelinePath = normPath;
+        } else if (item.activity) {
+          const actPts = [], sPt = parsePoint(item.activity.start), ePt = parsePoint(item.activity.end);
+          if (sPt) { const ms = new Date(startTime).getTime(); if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms, dateStr: formatLocalDate(new Date(ms)), pt: sPt }); actPts.push({ point: `${sPt[0]}, ${sPt[1]}`, time: startTime }); }
+          if (ePt) { const ms = new Date(endTime).getTime(); if (!isNaN(ms)) allTimelinePointsForPhotoSync.push({ ms, dateStr: formatLocalDate(new Date(ms)), pt: ePt }); actPts.push({ point: `${ePt[0]}, ${ePt[1]}`, time: endTime }); }
+          if (actPts.length > 0) normSeg.timelinePath = actPts;
+        }
+
+        if (normSeg.visit || normSeg.timelinePath) normalized.push(normSeg);
+      });
+
+      allTimelinePointsForPhotoSync.sort((a, b) => a.ms - b.ms);
+      return normalized;
+    }
+
     function getPrefName(lat, lon) {
       for (let i = 0; i < PREFS.length; i++) {
         const p = PREFS[i];
@@ -1752,21 +901,13 @@
 
     function isOvernightStay(startIso, endIso) {
       if (!startIso || !endIso) return false;
-      const s = new Date(startIso);
-      const e = new Date(endIso);
-      const stayHours = (e - s) / 3600000;
-      if (stayHours >= 10) return true;
-      if (stayHours >= 3.5 && (s.getDate() !== e.getDate() || s.getHours() >= 22 || s.getHours() <= 3)) return true;
-      return false;
+      const s = new Date(startIso), e = new Date(endIso), stayHours = (e - s) / 3600000;
+      return (stayHours >= 10) || (stayHours >= 3.5 && (s.getDate() !== e.getDate() || s.getHours() >= 22 || s.getHours() <= 3));
     }
 
     window.showPrefDetail = function(name, stay, visit, passDays) {
       document.getElementById('pref-board-name').textContent = `🗾 TARGET: ${name}`;
-      let statusText = "LOCKED (UNVISITED)";
-      if (stay > 0) statusText = "★ STAYED CLEAR";
-      else if (visit > 0) statusText = "● VISITED";
-      else if (passDays > 0) statusText = "▲ PASSED ONLY";
-      document.getElementById('pref-board-status').textContent = statusText;
+      document.getElementById('pref-board-status').textContent = stay > 0 ? "★ STAYED CLEAR" : (visit > 0 ? "● VISITED" : (passDays > 0 ? "▲ PASSED ONLY" : "LOCKED"));
       document.getElementById('pref-board-stay').textContent = stay.toLocaleString();
       document.getElementById('pref-board-visit').textContent = visit.toLocaleString();
       document.getElementById('pref-board-pass').textContent = `${passDays.toLocaleString()}d`;
@@ -1775,22 +916,21 @@
     window.lookupAddress = async function(lat, lon, key, btnId) {
       const btn = document.getElementById(btnId);
       if (!btn) return;
-      btn.textContent = "SCANNING…⏳";
-      btn.disabled = true;
+      btn.textContent = "SCANNING…⏳"; btn.disabled = true;
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, { headers: { 'Accept-Language': 'ja' } });
         const data = await res.json();
-        if (data && data.display_name) {
+        if (data?.display_name) {
           const name = data.display_name;
           btn.outerHTML = `<div style="margin:6px 0; padding:6px; background:#1f1f1f; border-left:4px solid var(--p-yellow); font-size:0.73rem; color:#fff;"><strong>📍 ADDRESS：</strong><br>${name}</div>`;
           const catSelect = document.getElementById(`cat_${key}`);
           if (catSelect && catSelect.value === "📍") {
-            if (name.includes("ラーメン") || name.includes("食堂") || name.includes("レストラン") || name.includes("カフェ")) catSelect.value = "🍜";
-            else if (name.includes("道の駅") || name.includes("サービスエリア") || name.includes("パーキング")) catSelect.value = "🛣️";
-            else if (name.includes("温泉") || name.includes("湯")) catSelect.value = "♨️";
-            else if (name.includes("城") || name.includes("神社") || name.includes("神宮") || name.includes("寺")) catSelect.value = "🏯";
-            else if (name.includes("フェリー") || name.includes("港")) catSelect.value = "⛴️";
-            else if (name.includes("岬") || name.includes("公園") || name.includes("展望") || name.includes("峠")) catSelect.value = "🏍️";
+            if (/ラーメン|食堂|レストラン|カフェ/.test(name)) catSelect.value = "🍜";
+            else if (/道の駅|サービスエリア|パーキング/.test(name)) catSelect.value = "🛣️";
+            else if (/温泉|湯/.test(name)) catSelect.value = "♨️";
+            else if (/城|神社|神宮|寺/.test(name)) catSelect.value = "🏯";
+            else if (/フェリー|港/.test(name)) catSelect.value = "⛴️";
+            else if (/岬|公園|展望|峠/.test(name)) catSelect.value = "🏍️";
           }
         } else { btn.textContent = "NOT FOUND"; }
       } catch (e) { btn.textContent = "NETWORK ERROR"; }
@@ -1799,10 +939,8 @@
     window.saveSpotMemo = function(key, lat, lon) {
       const cat = document.getElementById(`cat_${key}`).value;
       const text = document.getElementById(`memo_${key}`).value;
-      savedMemos[key] = { cat: cat, text: text, lat: lat, lon: lon, updated: new Date().toLocaleDateString() };
-      saveMemosToStorage();
-      renderData();
-      updateMemoListUI();
+      savedMemos[key] = { cat, text, lat, lon, updated: new Date().toLocaleDateString() };
+      saveMemosToStorage(); renderData(); updateMemoListUI();
     };
 
     window.savePhotoMemo = function(photoId) {
@@ -1810,23 +948,18 @@
       const input = document.getElementById(`pmemo_${photoId}`);
       if (item && input) {
         item.memo = input.value;
-        savePhotosToStorage();
-        renderSavedPhotosOnMap();
-        updateMemoListUI();
+        renderSavedPhotosOnMap(); updateMemoListUI();
       }
     };
 
     window.deleteSinglePhoto = function(photoId) {
       savedPhotos = savedPhotos.filter(p => p.id !== photoId);
-      savePhotosToStorage();
-      renderSavedPhotosOnMap();
-      updateMemoListUI();
+      renderSavedPhotosOnMap(); updateMemoListUI();
     };
 
     function updateMemoListUI() {
       const container = document.getElementById('memoListContainer');
       let html = '';
-
       Object.keys(savedMemos).forEach(k => {
         const m = savedMemos[k];
         if (!m.text && m.cat === '📍') return;
@@ -1835,7 +968,6 @@
           <div style="font-size:0.68rem; color:#888;">SPOT COORD: ${k} (${m.updated})</div>
         </div>`;
       });
-
       savedPhotos.forEach(p => {
         html += `<div style="padding:8px; border-bottom:1px solid #333; font-size:0.78rem; display:flex; align-items:center; gap:8px; text-align:left;">
           <img src="${p.dataUrl}" style="width:38px; height:38px; object-fit:cover; border:1.5px solid #fff; cursor:pointer; flex-shrink:0;" onclick="window.mapObj.setView([${p.lat}, ${p.lon}], 15);">
@@ -1846,27 +978,16 @@
           <button type="button" class="btn-icon" onclick="deleteSinglePhoto('${p.id}')" title="DELETE PHOTO">🗑️</button>
         </div>`;
       });
-
       container.innerHTML = html || '<p class="note">NO LOGS OR PHOTOS SAVED</p>';
     }
 
     function renderSavedPhotosOnMap() {
       photosLayer.clearLayers();
-      if (!savedPhotos || savedPhotos.length === 0) {
-        document.getElementById('clearPhotosBtn').style.display = 'none';
-        return;
-      }
-      document.getElementById('clearPhotosBtn').style.display = 'block';
-
+      document.getElementById('clearPhotosBtn').style.display = savedPhotos.length > 0 ? 'block' : 'none';
       savedPhotos.forEach(p => {
-        const icon = L.divIcon({
-          className: '',
-          html: `<img src="${p.dataUrl}" class="photo-marker" style="width:46px; height:46px;">`,
-          iconSize: [46, 46], iconAnchor: [23, 23]
-        });
-
-        const m = L.marker([p.lat, p.lon], { icon: icon, zIndexOffset: 1400 });
-        const popupHtml = `
+        const icon = L.divIcon({ className: '', html: `<img src="${p.dataUrl}" class="photo-marker" style="width:46px; height:46px;">`, iconSize: [46, 46], iconAnchor: [23, 23] });
+        const m = L.marker([p.lat, p.lon], { icon, zIndexOffset: 1400 });
+        m.bindPopup(`
           <div class="popup-content" style="text-align:center;">
             <img src="${p.dataUrl}" style="max-width:220px; max-height:200px; border:2px solid #fff; object-fit:contain;"><br>
             <strong style="color:var(--p-yellow);">📸 ${p.name}</strong><br>
@@ -1880,23 +1001,16 @@
               </div>
             </div>
           </div>
-        `;
-        m.bindPopup(popupHtml);
+        `);
         m.addTo(photosLayer);
       });
     }
 
     updateMemoListUI();
-    renderSavedPhotosOnMap();
 
     window.exportMemos = function() {
-      const exportPayload = {
-        version: "10.3",
-        exportedAt: new Date().toISOString(),
-        memos: savedMemos,
-        photos: savedPhotos
-      };
-      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+      const payload = { version: "11.1", exportedAt: new Date().toISOString(), memos: savedMemos, photos: savedPhotos };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'touring_logbook_backup.json';
@@ -1914,18 +1028,12 @@
             if (parsed.memos) savedMemos = Object.assign(savedMemos, parsed.memos);
             if (Array.isArray(parsed.photos)) {
               const existingIds = new Set(savedPhotos.map(p => p.id));
-              parsed.photos.forEach(p => {
-                if (!existingIds.has(p.id)) savedPhotos.push(p);
-              });
+              parsed.photos.forEach(p => { if (!existingIds.has(p.id)) savedPhotos.push(p); });
             }
           } else if (parsed && typeof parsed === 'object') {
             savedMemos = Object.assign(savedMemos, parsed);
           }
-          saveMemosToStorage();
-          savePhotosToStorage();
-          renderData();
-          renderSavedPhotosOnMap();
-          updateMemoListUI();
+          saveMemosToStorage(); renderData(); renderSavedPhotosOnMap(); updateMemoListUI();
           alert('LOGBOOK DATA RESTORED!! (メモと写真を復元しました)');
         } catch(err) { alert('JSON IMPORT FAILED'); }
       };
@@ -1933,30 +1041,17 @@
     };
 
     function detectUserHomeCoords(segments) {
-      let explicitHome = null;
+      let explicitHome = null, maxCount = 0, mostFrequentPt = null;
       const stayCounter = {};
-      let maxCount = 0;
-      let mostFrequentPt = null;
-
       segments.forEach(seg => {
-        if (seg.visit && seg.visit.topCandidate && seg.visit.topCandidate.placeLocation) {
-          const pt = parsePoint(seg.visit.topCandidate.placeLocation.latLng);
-          if (!pt || !isInsideJapan(pt[0], pt[1])) return;
-          if (seg.visit.topCandidate.semanticType === "HOME") {
-            explicitHome = pt;
-          }
-          const key = `${pt[0].toFixed(2)}_${pt[1].toFixed(2)}`;
-          stayCounter[key] = (stayCounter[key] || 0) + 1;
-          if (stayCounter[key] > maxCount) {
-            maxCount = stayCounter[key];
-            mostFrequentPt = pt;
-          }
-        }
+        const pt = parsePoint(seg.visit?.topCandidate?.placeLocation?.latLng);
+        if (!pt || !isInsideJapan(pt[0], pt[1])) return;
+        if (seg.visit.topCandidate.semanticType === "HOME") explicitHome = pt;
+        const key = `${pt[0].toFixed(2)}_${pt[1].toFixed(2)}`;
+        stayCounter[key] = (stayCounter[key] || 0) + 1;
+        if (stayCounter[key] > maxCount) { maxCount = stayCounter[key]; mostFrequentPt = pt; }
       });
-
-      if (explicitHome) return explicitHome;
-      if (mostFrequentPt) return mostFrequentPt;
-      return [35.6812, 139.7671];
+      return explicitHome || mostFrequentPt || [35.6812, 139.7671];
     }
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -1969,27 +1064,20 @@
           const data = JSON.parse(event.target.result);
           rawSegments = normalizeTimelineData(data);
           if (rawSegments.length === 0) {
-            alert('有効なタイムラインデータが見つかりませんでした。ファイル形式をご確認ください。');
+            alert('有効なタイムラインデータが見つかりませんでした。');
             document.getElementById('stats').innerHTML = "<p class='note'>NO VALID DATA FOUND</p>";
             return;
           }
           homeCoords = detectUserHomeCoords(rawSegments);
-
           const years = new Set();
-          rawSegments.forEach(seg => {
-            if (seg.startTime) {
-              const y = seg.startTime.substring(0, 4);
-              if (/^\d{4}$/.test(y)) years.add(y);
-            }
-          });
-          
+          rawSegments.forEach(seg => { const y = seg.startTime?.substring(0, 4); if (/^\d{4}$/.test(y)) years.add(y); });
           const select = document.getElementById('yearFilter');
-          select.innerHTML = '<option value="recent10">LAST 10 YEARS (2017 - 2026)</option><option value="all">ALL TIME</option>';
+          // デフォルトを ALL TIME に設定！
+          select.innerHTML = '<option value="all" selected>ALL TIME</option><option value="recent10">LAST 10 YEARS (2017 - 2026)</option>';
           const sortedYears = Array.from(years).sort().reverse();
           sortedYears.forEach(y => { select.innerHTML += `<option value="${y}">${y} ONLY</option>`; });
+          select.value = 'all';
           select.disabled = false;
-
-          if (window.innerWidth <= 768 && sortedYears.length > 0) select.value = sortedYears[0];
           renderData();
         } catch (err) { alert('JSON PARSE ERROR: ' + err.message); }
       };
@@ -2005,55 +1093,29 @@
       polylinesLayer.clearLayers();
       highlightMarkersLayer.clearLayers();
 
-      const boundsPts = [];
-      const highlightedPlayback = [];
+      const boundsPts = [], highlightedPlayback = [], uniqueDates = [];
       const bridgeMode = document.getElementById('bridgeMode').value;
 
-      const uniqueDates = [];
-      segmentsList.forEach(seg => {
-        if (seg.date && !uniqueDates.includes(seg.date)) {
-          uniqueDates.push(seg.date);
-        }
-      });
-
+      segmentsList.forEach(seg => { if (seg.date && !uniqueDates.includes(seg.date)) uniqueDates.push(seg.date); });
       const dateColorMap = {};
-      uniqueDates.forEach((dStr, idx) => {
-        dateColorMap[dStr] = DAY_PALETTE[idx % DAY_PALETTE.length];
-      });
+      uniqueDates.forEach((dStr, idx) => { dateColorMap[dStr] = DAY_PALETTE[idx % DAY_PALETTE.length]; });
 
-      let firstSeg = null;
-      let lastSeg = null;
-      let prevDate = null;
+      let firstSeg = null, lastSeg = null, prevDate = null;
 
       segmentsList.forEach(segObj => {
         if (segObj.pts.length >= 2) {
           if (!firstSeg) firstSeg = segObj;
           lastSeg = segObj;
-
           const col = dateColorMap[segObj.date] || '#e60012';
           const isDashed = (segObj.isBridge && bridgeMode === 'bridge_dashed');
-
-          L.polyline(segObj.pts, {
-            color: col,
-            weight: 5.5,
-            opacity: 0.95,
-            dashArray: isDashed ? '8, 8' : null,
-            renderer: canvasRenderer
-          }).addTo(polylinesLayer);
-
+          L.polyline(segObj.pts, { color: col, weight: 5.5, opacity: 0.95, dashArray: isDashed ? '8, 8' : null, renderer: canvasRenderer }).addTo(polylinesLayer);
           segObj.pts.forEach((p, idx) => {
             boundsPts.push(p);
-            const t = (idx === 0) ? segObj.startTime : segObj.endTime;
-            highlightedPlayback.push({ pt: p, time: t });
+            highlightedPlayback.push({ pt: p, time: idx === 0 ? segObj.startTime : segObj.endTime });
           });
-
           if (prevDate && segObj.date && segObj.date !== prevDate) {
             const switchPt = segObj.pts[0];
-            const midIcon = L.divIcon({
-              className: '',
-              html: `<div class="flag-badge flag-midnight">🌙 ${segObj.date.substring(5)} 0:00</div>`,
-              iconSize: [0, 0]
-            });
+            const midIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-midnight">🌙 ${segObj.date.substring(5)} 0:00</div>`, iconSize: [0, 0] });
             L.marker(switchPt, { icon: midIcon, zIndexOffset: 1100 })
               .bindPopup(`<div class="popup-content"><div class="popup-title">🌙 MIDNIGHT CROSSING</div><div><strong>${prevDate} ➔ ${segObj.date}</strong></div><div>TIME: ${formatDateTime(segObj.startTime)}</div></div>`)
               .addTo(highlightMarkersLayer);
@@ -2066,28 +1128,16 @@
         activePlaybackPoints = highlightedPlayback;
         document.getElementById('replayTargetInfo').textContent = `TARGET: ${bannerTitle} (${highlightedPlayback.length} PTS)`;
       }
-
       if (firstSeg) {
-        const startPt = firstSeg.pts[0];
-        const startPref = getPrefName(startPt[0], startPt[1]) || '';
-        const startIcon = L.divIcon({
-          className: '',
-          html: `<div class="flag-badge flag-start">🟢 START</div>`,
-          iconSize: [0, 0]
-        });
+        const startPt = firstSeg.pts[0], startPref = getPrefName(startPt[0], startPt[1]) || '';
+        const startIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-start">🟢 START</div>`, iconSize: [0, 0] });
         L.marker(startPt, { icon: startIcon, zIndexOffset: 1200 })
           .bindPopup(`<div class="popup-content"><div class="popup-title">🟢 START ${startPref ? '['+startPref+']' : ''}</div><div>${formatDateTime(firstSeg.startTime)}</div><a href="https://www.google.com/maps?q=${startPt[0]},${startPt[1]}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a></div>`)
           .addTo(highlightMarkersLayer);
       }
-
       if (lastSeg) {
-        const goalPt = lastSeg.pts[lastSeg.pts.length - 1];
-        const goalPref = getPrefName(goalPt[0], goalPt[1]) || '';
-        const goalIcon = L.divIcon({
-          className: '',
-          html: `<div class="flag-badge flag-goal">🏁 GOAL</div>`,
-          iconSize: [0, 0]
-        });
+        const goalPt = lastSeg.pts[lastSeg.pts.length - 1], goalPref = getPrefName(goalPt[0], goalPt[1]) || '';
+        const goalIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-goal">🏁 GOAL</div>`, iconSize: [0, 0] });
         L.marker(goalPt, { icon: goalIcon, zIndexOffset: 1200 })
           .bindPopup(`<div class="popup-content"><div class="popup-title">🏁 GOAL ${goalPref ? '['+goalPref+']' : ''}</div><div>${formatDateTime(lastSeg.endTime)}</div><a href="https://www.google.com/maps?q=${goalPt[0]},${goalPt[1]}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a></div>`)
           .addTo(highlightMarkersLayer);
@@ -2098,39 +1148,25 @@
       const banner = document.getElementById('floating-banner');
       document.getElementById('floating-banner-text').textContent = bannerTitle;
       document.getElementById('banner-replay-btn').style.display = 'inline-block';
-      const legendBox = document.getElementById('banner-day-legend');
       let legendHtml = `<span class="day-pill"><span class="day-dot" style="background:var(--p-red);"></span>🟢START</span>`;
-      uniqueDates.forEach((dStr, i) => {
-        const c = dateColorMap[dStr];
-        legendHtml += `<span class="day-pill"><span class="day-dot" style="background:${c};"></span>DAY ${i+1} (${dStr.substring(5)})</span>`;
-      });
+      uniqueDates.forEach((dStr, i) => { legendHtml += `<span class="day-pill"><span class="day-dot" style="background:${dateColorMap[dStr]};"></span>DAY ${i+1} (${dStr.substring(5)})</span>`; });
       legendHtml += `<span class="day-pill"><span class="day-dot" style="background:#000;"></span>🏁GOAL</span>`;
-      legendBox.innerHTML = legendHtml;
-
+      document.getElementById('banner-day-legend').innerHTML = legendHtml;
       banner.style.display = 'flex';
       if (window.innerWidth <= 768) toggleSidebar(false);
     }
 
     window.highlightSession = function(sessionKey, customLabel) {
       const segmentsList = sessionRoutesMap[sessionKey];
-      if (!segmentsList || segmentsList.length === 0) {
-        alert('指定された日時の移動ルートデータが見つかりません。');
-        return;
-      }
+      if (!segmentsList || segmentsList.length === 0) { alert('指定された日時の移動ルートデータが見つかりません。'); return; }
       renderHighlightedSegments(segmentsList, `${customLabel || sessionKey}`);
     };
 
     window.highlightRouteByDate = function(dateStr) {
       const sKeys = dateToSessionsMap[dateStr];
-      if (!sKeys || sKeys.length === 0) {
-        alert(`${dateStr} の移動ルートデータが見つかりません。`);
-        return;
-      }
+      if (!sKeys || sKeys.length === 0) { alert(`${dateStr} の移動ルートデータが見つかりません。`); return; }
       const combinedSegments = [];
-      sKeys.forEach(sKey => {
-        const list = sessionRoutesMap[sKey] || [];
-        list.forEach(seg => combinedSegments.push(seg));
-      });
+      sKeys.forEach(sKey => { (sessionRoutesMap[sKey] || []).forEach(seg => combinedSegments.push(seg)); });
       renderHighlightedSegments(combinedSegments, `${dateStr}`);
     };
 
@@ -2142,7 +1178,6 @@
       return '#e60012';
     }
 
-    // Main Data Processing & Rendering
     function renderData() {
       if (rawSegments.length === 0) return;
       stopTimelapse();
@@ -2156,9 +1191,7 @@
         document.getElementById('banner-replay-btn').style.display = 'none';
         document.getElementById('banner-day-legend').innerHTML = '';
         banner.style.display = 'flex';
-      } else {
-        banner.style.display = 'none';
-      }
+      } else { banner.style.display = 'none'; }
 
       const hasIgnored = (Object.keys(ignoredDays).length > 0 || Object.keys(ignoredSpots).length > 0);
       document.getElementById('resetExclusionsBox').style.display = hasIgnored ? 'block' : 'none';
@@ -2202,42 +1235,20 @@
         });
       }
 
-      const yearlyDistance = {};
-      const yearlyVisits = {};
-      const sessionDistance = {};
-      const sessionLabels = {};
-      let currentSessionKey = null;
-      let lastValidMoveTimeMs = null;
-
-      let totalDist = 0;
-      let totalStayCount = 0;
-      let totalRawVisitCount = 0;
-      const allBounds = [];
-      const mapPinGroups = {};
-      const recordSpotGroups = {};
-      const awayDatesSet = new Set();
-
+      const yearlyDistance = {}, yearlyVisits = {}, sessionDistance = {}, sessionLabels = {};
+      let currentSessionKey = null, lastValidMoveTimeMs = null;
+      let totalDist = 0, totalStayCount = 0, totalRawVisitCount = 0;
+      const allBounds = [], mapPinGroups = {}, recordSpotGroups = {}, awayDatesSet = new Set();
       const prefStats = {};
       PREFS.forEach(p => { prefStats[p.name] = { stay: 0, visit: 0, passDays: new Set() }; });
+      const activeDaysSet = new Set(), seasonsSet = new Set();
+      let distDay = 0, distEve = 0, distNight = 0, distWinter = 0;
 
-      const activeDaysSet = new Set();
-      const seasonsSet = new Set();
-
-      let distDay = 0, distEve = 0, distNight = 0;
-      let distWinter = 0;
-
-      const capeReached = {
-        oma: 0, todoga: 0, shiono: 0, bishano: 0,
-        soya: 0, nosappu: 0, sata: 0, kouzaki: 0
-      };
-
+      const capeReached = { oma: 0, todoga: 0, shiono: 0, bishano: 0, soya: 0, nosappu: 0, sata: 0, kouzaki: 0 };
       function checkExtremeCapes(lat, lon) {
         for (const [k, cape] of Object.entries(EXTREME_CAPES)) {
-          if (capeReached[k] === 1) continue;
-          if (Math.abs(lat - cape.lat) < 0.15 && Math.abs(lon - cape.lon) < 0.15) {
-            if (calcDistanceKm(lat, lon, cape.lat, cape.lon) <= cape.radiusKm) {
-              capeReached[k] = 1;
-            }
+          if (!capeReached[k] && Math.abs(lat - cape.lat) < 0.15 && Math.abs(lon - cape.lon) < 0.15) {
+            if (calcDistanceKm(lat, lon, cape.lat, cape.lon) <= cape.radiusKm) capeReached[k] = 1;
           }
         }
       }
@@ -2259,23 +1270,15 @@
 
       function isValidRecordArea(lat, lon) {
         if (isDeepOceanPoint(lat, lon)) return false;
-        if (recordScope === 'mainland') {
-          if (!isInsideJapan(lat, lon)) return false;
-          if (isOkinawaOrRemoteIsland(lat, lon)) return false;
-          return true;
-        } else if (recordScope === 'japan_all') {
-          return isInsideJapan(lat, lon);
-        }
+        if (recordScope === 'mainland') return isInsideJapan(lat, lon) && !isOkinawaOrRemoteIsland(lat, lon);
+        if (recordScope === 'japan_all') return isInsideJapan(lat, lon);
         return true;
       }
 
-      function getSpotKey(lat, lon) {
-        return `${lat.toFixed(2)}_${lon.toFixed(2)}`;
-      }
+      function getSpotKey(lat, lon) { return `${lat.toFixed(2)}_${lon.toFixed(2)}`; }
 
       function updateExtremes(lat, lon, dateStr) {
-        if (!isValidRecordArea(lat, lon)) return;
-        if (isTokyo23OrHomeArea(lat, lon)) return;
+        if (!isValidRecordArea(lat, lon) || isTokyo23OrHomeArea(lat, lon)) return;
         const sKey = getSpotKey(lat, lon);
         if (ignoredSpots[sKey]) return;
         if (lat > extremes.north.lat) extremes.north = { lat, lon, date: dateStr, key: sKey };
@@ -2287,49 +1290,33 @@
       function registerActiveDate(dateStr) {
         activeDaysSet.add(dateStr);
         const m = parseInt(dateStr.substring(5, 7), 10);
-        if (m >= 3 && m <= 5) seasonsSet.add('SPRING');
-        else if (m >= 6 && m <= 8) seasonsSet.add('SUMMER');
-        else if (m >= 9 && m <= 11) seasonsSet.add('AUTUMN');
-        else seasonsSet.add('WINTER');
+        seasonsSet.add(m >= 3 && m <= 5 ? 'SPRING' : (m >= 6 && m <= 8 ? 'SUMMER' : (m >= 9 && m <= 11 ? 'AUTUMN' : 'WINTER')));
       }
 
       function getSessionKey(tStr) {
-        const dObj = new Date(tStr);
-        const tMs = dObj.getTime();
-        const rawDateStr = formatLocalDate(dObj);
+        const dObj = new Date(tStr), tMs = dObj.getTime(), rawDateStr = formatLocalDate(dObj);
         let resultKey;
-
         if (dayGroupingMode === 'session') {
           if (!currentSessionKey || !lastValidMoveTimeMs || (tMs - lastValidMoveTimeMs > 3 * 3600000)) {
-            let idx = 1;
-            let candidate = rawDateStr;
-            while (sessionDistance[candidate] !== undefined) {
-              idx++;
-              candidate = `${rawDateStr} (#${idx})`;
-            }
+            let idx = 1, candidate = rawDateStr;
+            while (sessionDistance[candidate] !== undefined) { idx++; candidate = `${rawDateStr} (#${idx})`; }
             currentSessionKey = candidate;
             sessionLabels[currentSessionKey] = rawDateStr;
           } else {
             const startDayStr = sessionLabels[currentSessionKey].substring(0, 10);
-            if (rawDateStr !== startDayStr) {
-              sessionLabels[currentSessionKey] = `${startDayStr}〜${rawDateStr.substring(5)}`;
-            }
+            if (rawDateStr !== startDayStr) sessionLabels[currentSessionKey] = `${startDayStr}〜${rawDateStr.substring(5)}`;
           }
           lastValidMoveTimeMs = tMs;
           resultKey = currentSessionKey;
         } else if (dayGroupingMode === '4am') {
-          const shifted = new Date(tMs - 4 * 3600000);
-          resultKey = formatLocalDate(shifted);
+          resultKey = formatLocalDate(new Date(tMs - 4 * 3600000));
           sessionLabels[resultKey] = resultKey;
         } else {
           resultKey = tStr.substring(0, 10);
           sessionLabels[resultKey] = resultKey;
         }
-
         if (!dateToSessionsMap[rawDateStr]) dateToSessionsMap[rawDateStr] = [];
-        if (!dateToSessionsMap[rawDateStr].includes(resultKey)) {
-          dateToSessionsMap[rawDateStr].push(resultKey);
-        }
+        if (!dateToSessionsMap[rawDateStr].includes(resultKey)) dateToSessionsMap[rawDateStr].push(resultKey);
         return resultKey;
       }
 
@@ -2339,8 +1326,7 @@
         if (!seg.startTime) return;
         const dStartObj = new Date(seg.startTime);
         if (isNaN(dStartObj.getTime())) return;
-        const dateStr = formatLocalDate(dStartObj);
-        const year = dStartObj.getFullYear();
+        const dateStr = formatLocalDate(dStartObj), year = dStartObj.getFullYear();
 
         if (dateStart && dateStr < dateStart) return;
         if (dateEnd && dateStr > dateEnd) return;
@@ -2354,104 +1340,60 @@
 
         if (seg.visit) {
           const top = seg.visit.topCandidate;
-          if (top && top.placeLocation && top.placeLocation.latLng) {
-            const pt = parsePoint(top.placeLocation.latLng);
-            if (pt) {
-              const sKeySpot = getSpotKey(pt[0], pt[1]);
-              const semType = top.semanticType || "UNKNOWN";
-              const key = `${pt[0].toFixed(3)}_${pt[1].toFixed(3)}`;
-              const pName = getPrefName(pt[0], pt[1]);
+          const pt = parsePoint(top?.placeLocation?.latLng);
+          if (pt) {
+            const sKeySpot = getSpotKey(pt[0], pt[1]), semType = top.semanticType || "UNKNOWN";
+            const key = `${pt[0].toFixed(3)}_${pt[1].toFixed(3)}`, pName = getPrefName(pt[0], pt[1]);
+            const isHomeSpot = (semType === "HOME") || (homeCoords && calcDistanceKm(homeCoords[0], homeCoords[1], pt[0], pt[1]) <= 2.0);
 
-              const isHomeSpot = (semType === "HOME") || (homeCoords && calcDistanceKm(homeCoords[0], homeCoords[1], pt[0], pt[1]) <= 2.0);
-
-              if (isInsideJapan(pt[0], pt[1]) && !isHomeSpot) {
-                checkExtremeCapes(pt[0], pt[1]);
-                const overnight = isOvernightStay(seg.startTime, seg.endTime);
-                if (pName) {
-                  if (overnight) {
-                    prefStats[pName].stay++;
-                    totalStayCount++;
-                    awayDatesSet.add(dateStr);
-                  } else {
-                    prefStats[pName].visit++;
-                  }
-                  prefStats[pName].passDays.add(dateStr);
-                }
-                totalRawVisitCount++;
-                registerActiveDate(dateStr);
+            if (isInsideJapan(pt[0], pt[1]) && !isHomeSpot) {
+              checkExtremeCapes(pt[0], pt[1]);
+              const overnight = isOvernightStay(seg.startTime, seg.endTime);
+              if (pName) {
+                if (overnight) { prefStats[pName].stay++; totalStayCount++; awayDatesSet.add(dateStr); }
+                else { prefStats[pName].visit++; }
+                prefStats[pName].passDays.add(dateStr);
               }
+              totalRawVisitCount++;
+              registerActiveDate(dateStr);
+            }
 
-              if (isValidRecordArea(pt[0], pt[1]) && !isHomeSpot && !isTokyo23OrHomeArea(pt[0], pt[1]) && !ignoredSpots[sKeySpot]) {
-                updateExtremes(pt[0], pt[1], dateStr);
-                if (!recordSpotGroups[key]) {
-                  recordSpotGroups[key] = { lat: pt[0], lon: pt[1], spotKey: sKeySpot, lastDate: formatDateTime(seg.startTime) };
-                } else {
-                  recordSpotGroups[key].lastDate = formatDateTime(seg.startTime);
+            if (isValidRecordArea(pt[0], pt[1]) && !isHomeSpot && !isTokyo23OrHomeArea(pt[0], pt[1]) && !ignoredSpots[sKeySpot]) {
+              updateExtremes(pt[0], pt[1], dateStr);
+              recordSpotGroups[key] = { lat: pt[0], lon: pt[1], spotKey: sKeySpot, lastDate: formatDateTime(seg.startTime) };
+            }
+
+            if (isValidMapArea(pt[0], pt[1])) {
+              if (bridgeMode !== 'off') {
+                unifiedStream.push({ pt, time: seg.startTime, ms: dStartObj.getTime(), segId: `visit_${segIdx}`, isVisitPoint: true });
+                if (seg.endTime && seg.endTime !== seg.startTime) {
+                  const eMs = new Date(seg.endTime).getTime();
+                  if (!isNaN(eMs)) unifiedStream.push({ pt, time: seg.endTime, ms: eMs, segId: `visit_${segIdx}`, isVisitPoint: true });
                 }
               }
-
-              if (isValidMapArea(pt[0], pt[1])) {
-                if (bridgeMode !== 'off') {
-                  unifiedStream.push({
-                    pt: pt,
-                    time: seg.startTime,
-                    ms: dStartObj.getTime(),
-                    segId: `visit_${segIdx}`,
-                    isVisitPoint: true
-                  });
-                  if (seg.endTime && seg.endTime !== seg.startTime) {
-                    const eMs = new Date(seg.endTime).getTime();
-                    if (!isNaN(eMs)) {
-                      unifiedStream.push({
-                        pt: pt,
-                        time: seg.endTime,
-                        ms: eMs,
-                        segId: `visit_${segIdx}`,
-                        isVisitPoint: true
-                      });
-                    }
-                  }
-                }
-
-                const matchesPrefFilter = !selectedPrefFilter || (pName === selectedPrefFilter);
-                const inExcludedArea = (!selectedPrefFilter) && hideTokyoHome && isTokyo23OrHomeArea(pt[0], pt[1]);
-
-                if (!inExcludedArea && !(hideHome && isHomeSpot) && !ignoredSpots[sKeySpot]) {
-                  yearlyVisits[year]++;
-                  if ((showVisits || selectedPrefFilter) && matchesPrefFilter) {
-                    if (!mapPinGroups[key]) {
-                      mapPinGroups[key] = { lat: pt[0], lon: pt[1], pref: pName, spotKey: sKeySpot, type: isHomeSpot ? "HOME" : semType, placeId: top.placeId || "", records: [], stayCount: 0 };
-                    }
-                    const stayMin = (seg.startTime && seg.endTime) ? Math.max(0, Math.round((new Date(seg.endTime) - dStartObj) / 60000)) : 0;
-                    if (isOvernightStay(seg.startTime, seg.endTime)) mapPinGroups[key].stayCount++;
-                    mapPinGroups[key].records.push({
-                      start: formatDateTime(seg.startTime),
-                      rawDate: dateStr,
-                      stayMin: stayMin
-                    });
-                  }
+              const matchesPrefFilter = !selectedPrefFilter || (pName === selectedPrefFilter);
+              const inExcludedArea = (!selectedPrefFilter) && hideTokyoHome && isTokyo23OrHomeArea(pt[0], pt[1]);
+              if (!inExcludedArea && !(hideHome && isHomeSpot) && !ignoredSpots[sKeySpot]) {
+                yearlyVisits[year]++;
+                if ((showVisits || selectedPrefFilter) && matchesPrefFilter) {
+                  if (!mapPinGroups[key]) mapPinGroups[key] = { lat: pt[0], lon: pt[1], pref: pName, spotKey: sKeySpot, type: isHomeSpot ? "HOME" : semType, placeId: top.placeId || "", records: [], stayCount: 0 };
+                  const stayMin = (seg.startTime && seg.endTime) ? Math.max(0, Math.round((new Date(seg.endTime) - dStartObj) / 60000)) : 0;
+                  if (isOvernightStay(seg.startTime, seg.endTime)) mapPinGroups[key].stayCount++;
+                  mapPinGroups[key].records.push({ start: formatDateTime(seg.startTime), rawDate: dateStr, stayMin });
                 }
               }
             }
           }
         }
 
-        if (seg.timelinePath && seg.timelinePath.length > 0) {
+        if (seg.timelinePath?.length > 0) {
           for (let i = 0; i < seg.timelinePath.length; i++) {
-            const pt = parsePoint(seg.timelinePath[i].point);
-            const tStr = seg.timelinePath[i].time || seg.startTime;
+            const pt = parsePoint(seg.timelinePath[i].point), tStr = seg.timelinePath[i].time || seg.startTime;
             if (!pt) continue;
             if (isInsideJapan(pt[0], pt[1])) checkExtremeCapes(pt[0], pt[1]);
             if (!isValidMapArea(pt[0], pt[1])) continue;
             const ptMs = new Date(tStr).getTime();
-            if (isNaN(ptMs)) continue;
-            unifiedStream.push({
-              pt: pt,
-              time: tStr,
-              ms: ptMs,
-              segId: `path_${segIdx}`,
-              isVisitPoint: false
-            });
+            if (!isNaN(ptMs)) unifiedStream.push({ pt, time: tStr, ms: ptMs, segId: `path_${segIdx}`, isVisitPoint: false });
           }
         }
       });
@@ -2459,18 +1401,14 @@
       unifiedStream.sort((a, b) => a.ms - b.ms);
 
       if (noiseMode !== 'raw' && unifiedStream.length > 2) {
-        let cleaned = [];
+        const cleaned = [];
         for (let i = 0; i < unifiedStream.length; i++) {
           if (cleaned.length > 0 && i < unifiedStream.length - 1) {
-            const prev = cleaned[cleaned.length - 1];
-            const curr = unifiedStream[i];
-            const next = unifiedStream[i + 1];
+            const prev = cleaned[cleaned.length - 1], curr = unifiedStream[i], next = unifiedStream[i + 1];
             const d1 = calcDistanceKm(prev.pt[0], prev.pt[1], curr.pt[0], curr.pt[1]);
             const d2 = calcDistanceKm(curr.pt[0], curr.pt[1], next.pt[0], next.pt[1]);
             const dBase = calcDistanceKm(prev.pt[0], prev.pt[1], next.pt[0], next.pt[1]);
-            if (d1 > 5.0 && d2 > 5.0 && dBase < Math.min(d1, d2) * 0.25) {
-              continue;
-            }
+            if (d1 > 5.0 && d2 > 5.0 && dBase < Math.min(d1, d2) * 0.25) continue;
           }
           cleaned.push(unifiedStream[i]);
         }
@@ -2482,33 +1420,27 @@
       else if (noiseMode === 'ultra') { maxSpeed = 200; maxGapKm = 30; maxBridgeHours = 3; }
       else if (noiseMode === 'raw') { maxSpeed = 9999; maxGapKm = 500; maxBridgeHours = 24; }
 
-      const validPairs = [];
-      const gridCounts = {};
-      const globalDatesList = [];
+      const validPairs = [], gridCounts = {}, globalDatesList = [];
 
-      function getGridKey(pt1, pt2) {
-        const mLat = ((pt1[0] + pt2[0]) * 0.5).toFixed(2);
-        const mLon = ((pt1[1] + pt2[1]) * 0.5).toFixed(2);
-        return `${mLat}_${mLon}`;
+      function saveSessionPair(sKey, pt1, pt2, isBridge, dateStr, t1, t2) {
+        if (!sKey || ignoredDays[sKey]) return;
+        if (!sessionRoutesMap[sKey]) sessionRoutesMap[sKey] = [];
+        const list = sessionRoutesMap[sKey];
+        if (list.length > 0) {
+          const lastSeg = list[list.length - 1], lastPts = lastSeg.pts, lastPt = lastPts[lastPts.length - 1];
+          if (lastSeg.isBridge === isBridge && lastSeg.date === dateStr && lastPt[0] === pt1[0] && lastPt[1] === pt1[1]) {
+            lastPts.push(pt2); lastSeg.endTime = t2; return;
+          }
+        }
+        list.push({ pts: [pt1, pt2], isBridge, date: dateStr, startTime: t1, endTime: t2 });
       }
 
       for (let i = 0; i < unifiedStream.length; i++) {
-        const curr = unifiedStream[i];
-        const pt = curr.pt;
-        const tStr = curr.time;
-        const dObj = new Date(curr.ms);
-        const localDateStr = formatLocalDate(dObj);
-        const year = dObj.getFullYear();
-        const month = dObj.getMonth() + 1;
+        const curr = unifiedStream[i], pt = curr.pt, tStr = curr.time, dObj = new Date(curr.ms);
+        const localDateStr = formatLocalDate(dObj), year = dObj.getFullYear(), month = dObj.getMonth() + 1;
         if (!yearlyDistance[year]) yearlyDistance[year] = 0;
-
         if (i % 5 === 0) allBounds.push(pt);
-
-        if (i === 0) {
-          getSessionKey(tStr);
-          allFilteredPlaybackPoints.push({ pt: pt, time: tStr });
-          continue;
-        }
+        if (i === 0) { getSessionKey(tStr); allFilteredPlaybackPoints.push({ pt, time: tStr }); continue; }
 
         const prev = unifiedStream[i - 1];
         const rawDist = calcDistanceKm(prev.pt[0], prev.pt[1], pt[0], pt[1]);
@@ -2519,16 +1451,9 @@
         const isDifferentSeg = (curr.segId !== prev.segId || curr.isVisitPoint || prev.isVisitPoint);
 
         let canConnect = true;
-        if (excludeFerry && isFerrySegment(prev.pt, pt, rawDist, hours)) {
-          canConnect = false;
-        } else if (bridgeMode === 'off' && isDifferentSeg) {
-          canConnect = false;
-        } else {
-          if (rawDist > maxGapKm) canConnect = false;
-          if (hours > 0 && speedKmh > maxSpeed && rawDist > 2.5) canConnect = false;
-          if (hours < (1 / 60) && rawDist > 4.0) canConnect = false;
-          if (isDifferentSeg && hours > maxBridgeHours && rawDist > 10.0) canConnect = false;
-        }
+        if (excludeFerry && isFerrySegment(prev.pt, pt, rawDist)) canConnect = false;
+        else if (bridgeMode === 'off' && isDifferentSeg) canConnect = false;
+        else if (rawDist > maxGapKm || (hours > 0 && speedKmh > maxSpeed && rawDist > 2.5) || (hours < (1 / 60) && rawDist > 4.0) || (isDifferentSeg && hours > maxBridgeHours && rawDist > 10.0)) canConnect = false;
 
         if (canConnect) {
           const sKey = getSessionKey(tStr);
@@ -2537,11 +1462,7 @@
             yearlyDistance[year] += adjustedDist;
             totalDist += adjustedDist;
             sessionDistance[sKey] = (sessionDistance[sKey] || 0) + adjustedDist;
-
-            if (month === 12 || month === 1 || month === 2) {
-              distWinter += adjustedDist;
-            }
-
+            if (month === 12 || month === 1 || month === 2) distWinter += adjustedDist;
             registerActiveDate(localDateStr);
             if (!globalDatesList.includes(localDateStr)) globalDatesList.push(localDateStr);
 
@@ -2557,61 +1478,35 @@
             else distNight += adjustedDist;
 
             const isBridgeLine = (isDifferentSeg && rawDist > 2.0);
-            const gKey = getGridKey(prev.pt, pt);
+            const gKey = `${((prev.pt[0] + pt[0]) * 0.5).toFixed(2)}_${((prev.pt[1] + pt[1]) * 0.5).toFixed(2)}`;
             gridCounts[gKey] = (gridCounts[gKey] || 0) + 0.35;
 
-            validPairs.push({ pt1: prev.pt, pt2: pt, hr: hr, date: localDateStr, startTime: prev.time, endTime: tStr, isBridge: isBridgeLine, gKey: gKey });
+            validPairs.push({ pt1: prev.pt, pt2: pt, hr, date: localDateStr, startTime: prev.time, endTime: tStr, isBridge: isBridgeLine, gKey });
             saveSessionPair(sKey, prev.pt, pt, isBridgeLine, localDateStr, prev.time, tStr);
-            allFilteredPlaybackPoints.push({ pt: pt, time: tStr });
+            allFilteredPlaybackPoints.push({ pt, time: tStr });
           }
         } else {
           getSessionKey(tStr);
-          allFilteredPlaybackPoints.push({ pt: pt, time: tStr });
+          allFilteredPlaybackPoints.push({ pt, time: tStr });
         }
       }
 
       activePlaybackPoints = allFilteredPlaybackPoints;
       document.getElementById('replayTargetInfo').textContent = `TARGET: CONFIG FILTERED ROUTE (${activePlaybackPoints.length} PTS)`;
 
-      function saveSessionPair(sKey, pt1, pt2, isBridge, dateStr, t1, t2) {
-        if (!sKey || ignoredDays[sKey]) return;
-        if (!sessionRoutesMap[sKey]) sessionRoutesMap[sKey] = [];
-        const list = sessionRoutesMap[sKey];
-        if (list.length > 0) {
-          const lastSeg = list[list.length - 1];
-          const lastPts = lastSeg.pts;
-          const lastPt = lastPts[lastPts.length - 1];
-          if (lastSeg.isBridge === isBridge && lastSeg.date === dateStr && lastPt[0] === pt1[0] && lastPt[1] === pt1[1]) {
-            lastPts.push(pt2);
-            lastSeg.endTime = t2;
-            return;
-          }
-        }
-        list.push({ pts: [pt1, pt2], isBridge: isBridge, date: dateStr, startTime: t1, endTime: t2 });
-      }
-
-      let batchedLines = [];
+      const batchedLines = [];
       for (let i = 0; i < validPairs.length; i++) {
-        const p = validPairs[i];
-        const isDashed = (p.isBridge && bridgeMode === 'bridge_dashed');
+        const p = validPairs[i], isDashed = (p.isBridge && bridgeMode === 'bridge_dashed');
         let col = '#e60012';
-        if (routeStyle === 'heatmap') {
-          col = getHeatColor(Math.ceil(gridCounts[p.gKey] || 1));
-        } else if (routeStyle === 'daily_color') {
-          const dIdx = globalDatesList.indexOf(p.date);
-          col = DAY_PALETTE[(dIdx >= 0 ? dIdx : 0) % DAY_PALETTE.length];
-        } else if (routeStyle === 'night') {
-          col = (p.hr >= 6 && p.hr < 18) ? '#ffe600' : (p.hr >= 18 && p.hr < 22 ? '#00e5ff' : '#e60012');
-        } else if (isDashed) {
-          col = '#ffe600';
-        }
+        if (routeStyle === 'heatmap') col = getHeatColor(Math.ceil(gridCounts[p.gKey] || 1));
+        else if (routeStyle === 'daily_color') col = DAY_PALETTE[Math.max(0, globalDatesList.indexOf(p.date)) % DAY_PALETTE.length];
+        else if (routeStyle === 'night') col = (p.hr >= 6 && p.hr < 18) ? '#ffe600' : (p.hr >= 18 && p.hr < 22 ? '#00e5ff' : '#e60012');
+        else if (isDashed) col = '#ffe600';
 
         if (batchedLines.length > 0) {
-          const last = batchedLines[batchedLines.length - 1];
-          const lastPt = last.pts[last.pts.length - 1];
+          const last = batchedLines[batchedLines.length - 1], lastPt = last.pts[last.pts.length - 1];
           if (last.color === col && last.dashed === isDashed && lastPt[0] === p.pt1[0] && lastPt[1] === p.pt1[1]) {
-            last.pts.push(p.pt2);
-            continue;
+            last.pts.push(p.pt2); continue;
           }
         }
         batchedLines.push({ pts: [p.pt1, p.pt2], color: col, dashed: isDashed });
@@ -2623,18 +1518,11 @@
       }
 
       batchedLines.forEach(b => {
-        L.polyline(b.pts, {
-          color: b.color,
-          weight: (routeStyle === 'heatmap' && b.color === '#e60012') ? 3.8 : 2.8,
-          opacity: 0.88,
-          dashArray: b.dashed ? '6, 6' : null,
-          renderer: canvasRenderer
-        }).addTo(polylinesLayer);
+        L.polyline(b.pts, { color: b.color, weight: (routeStyle === 'heatmap' && b.color === '#e60012') ? 3.8 : 2.8, opacity: 0.88, dashArray: b.dashed ? '6, 6' : null, renderer: canvasRenderer }).addTo(polylinesLayer);
       });
 
       if ((dateStart || dateEnd || routeStyle === 'daily_color') && validPairs.length > 0 && globalDatesList.length <= 15) {
-        const firstP = validPairs[0];
-        const lastP = validPairs[validPairs.length - 1];
+        const firstP = validPairs[0], lastP = validPairs[validPairs.length - 1];
         const sIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-start">🟢 START</div>`, iconSize: [0, 0] });
         const gIcon = L.divIcon({ className: '', html: `<div class="flag-badge flag-goal">🏁 GOAL</div>`, iconSize: [0, 0] });
         L.marker(firstP.pt1, { icon: sIcon, zIndexOffset: 1200 }).bindPopup(`<div class="popup-content"><div class="popup-title">🟢 START</div><div>${formatDateTime(firstP.startTime)}</div></div>`).addTo(highlightMarkersLayer);
@@ -2645,43 +1533,23 @@
       const prefPinBounds = [];
       Object.entries(mapPinGroups).forEach(([key, group]) => {
         idx++;
-        const memoData = savedMemos[key] || { cat: '📍', text: '' };
-        const count = group.records.length;
+        const memoData = savedMemos[key] || { cat: '📍', text: '' }, count = group.records.length;
         const distFromHome = homeCoords ? calcDistanceKm(homeCoords[0], homeCoords[1], group.lat, group.lon) : 0;
-
         if (selectedPrefFilter) prefPinBounds.push([group.lat, group.lon]);
 
         let marker;
         if (memoData.cat !== '📍' || memoData.text) {
-          const icon = L.divIcon({ className: 'emoji-marker', html: memoData.cat, iconSize: [28, 28], iconAnchor: [14, 14] });
-          marker = L.marker([group.lat, group.lon], { icon: icon });
+          marker = L.marker([group.lat, group.lon], { icon: L.divIcon({ className: 'emoji-marker', html: memoData.cat, iconSize: [28, 28], iconAnchor: [14, 14] }) });
         } else {
-          const isHome = group.type === "HOME";
-          const isStay = group.stayCount > 0;
-          const radius = isHome ? 7 : Math.min(11, 5 + Math.log2(count) * 1.5);
-          marker = L.circleMarker([group.lat, group.lon], {
-            radius: radius,
-            fillColor: isHome ? '#00ff88' : (isStay ? '#e60012' : '#ffe600'),
-            color: '#000',
-            weight: 2,
-            fillOpacity: 0.92,
-            renderer: canvasRenderer
-          });
+          const isHome = group.type === "HOME", isStay = group.stayCount > 0;
+          marker = L.circleMarker([group.lat, group.lon], { radius: isHome ? 7 : Math.min(11, 5 + Math.log2(count) * 1.5), fillColor: isHome ? '#00ff88' : (isStay ? '#e60012' : '#ffe600'), color: '#000', weight: 2, fillOpacity: 0.92, renderer: canvasRenderer });
         }
 
         const btnId = `lookup_btn_${idx}`;
-        const listHtml = group.records.slice().reverse().slice(0, 12).map(r => `
-          <div class="visit-row">
-            <span>・${r.start} (${r.stayMin}m)</span>
-            <button type="button" class="btn-route-jump" onclick="highlightRouteByDate('${r.rawDate}')">🛣️ROUTE</button>
-          </div>
-        `).join('');
+        const listHtml = group.records.slice().reverse().slice(0, 12).map(r => `<div class="visit-row"><span>・${r.start} (${r.stayMin}m)</span><button type="button" class="btn-route-jump" onclick="highlightRouteByDate('${r.rawDate}')">🛣️ROUTE</button></div>`).join('');
+        const gmapUrl = group.placeId ? `https://www.google.com/maps/search/?api=1&query=${group.lat},${group.lon}&query_place_id=${group.placeId}` : `https://www.google.com/maps?q=${group.lat},${group.lon}`;
 
-        const gmapUrl = group.placeId
-          ? `https://www.google.com/maps/search/?api=1&query=${group.lat},${group.lon}&query_place_id=${group.placeId}`
-          : `https://www.google.com/maps?q=${group.lat},${group.lon}`;
-
-        const popupHtml = `
+        marker.bindPopup(`
           <div class="popup-content">
             <div class="popup-title">${memoData.cat} SPOT (VISIT:${count} / STAY:${group.stayCount})</div>
             <div style="font-size:0.72rem; color:#ccc; margin-bottom:4px;">🏠 DIST FROM HOME: ${Math.round(distFromHome)} km</div>
@@ -2707,29 +1575,26 @@
             </div>
             <a href="${gmapUrl}" target="_blank" class="gmap-link">🗺️ GOOGLE MAPS</a>
           </div>
-        `;
-        marker.bindPopup(popupHtml);
+        `);
         marker.addTo(visitsLayer);
       });
 
-      // Extreme Points List
       let extremeHtml = '';
       if (extremes.north.lat > -90) {
-        const exItems = [
+        [
           { label: '⬆️ NORTH', data: extremes.north },
           { label: '⬇️ SOUTH', data: extremes.south },
           { label: '➡️ EAST', data: extremes.east },
           { label: '⬅️ WEST', data: extremes.west }
-        ];
-        exItems.forEach(item => {
+        ].forEach(item => {
           const pName = getPrefName(item.data.lat, item.data.lon) || 'RECORD';
           extremeHtml += `<div class="rank-item">
             <div class="rank-main" onclick="window.mapObj.setView([${item.data.lat}, ${item.data.lon}], 13); if(window.innerWidth<=768)toggleSidebar(false);">
               <span class="rank-label"><strong>${item.label}</strong> (${pName})</span>
               <span class="rank-val">${item.data.date}</span>
             </div>
-            <button type="button" class="btn-icon" onclick="highlightRouteByDate('${item.data.date}')" data-tip-title="SHOW ROUTE" data-tip="この極点に到達した日の走行ルートを地図上にハイライト表示します。">🛣️</button>
-            <button type="button" class="btn-icon" onclick="ignoreSpot('${item.data.key}')" data-tip-title="EXCLUDE SPOT" data-tip="この地点を極点および最遠到達ランキングの集計対象から除外します。">🚫</button>
+            <button type="button" class="btn-icon" onclick="highlightRouteByDate('${item.data.date}')" data-tip-title="SHOW ROUTE" data-tip="この極点に到達した日の走行ルートをハイライト表示します。">🛣️</button>
+            <button type="button" class="btn-icon" onclick="ignoreSpot('${item.data.key}')" data-tip-title="EXCLUDE SPOT" data-tip="この地点を集計対象から除外します。">🚫</button>
           </div>`;
           if (showExtreme && !selectedPrefFilter) {
             const cIcon = L.divIcon({ className: 'crown-marker', html: '👑', iconSize: [28, 28], iconAnchor: [14, 14] });
@@ -2742,43 +1607,22 @@
       document.getElementById('extremeList').innerHTML = extremeHtml || '<p class="note">NO DATA</p>';
 
       if (selectedPrefFilter) {
-        if (prefPinBounds.length > 0) {
-          map.fitBounds(prefPinBounds, { padding: [50, 50], maxZoom: 12 });
-        } else {
-          const targetPrefObj = PREFS.find(p => p.name === selectedPrefFilter);
-          if (targetPrefObj) {
-            map.fitBounds([[targetPrefObj.minLat, targetPrefObj.minLon], [targetPrefObj.maxLat, targetPrefObj.maxLon]]);
-          }
+        if (prefPinBounds.length > 0) map.fitBounds(prefPinBounds, { padding: [50, 50], maxZoom: 12 });
+        else {
+          const tp = PREFS.find(p => p.name === selectedPrefFilter);
+          if (tp) map.fitBounds([[tp.minLat, tp.minLon], [tp.maxLat, tp.maxLon]]);
         }
-      } else if (allBounds.length > 0) {
-        map.fitBounds(allBounds);
-      }
+      } else if (allBounds.length > 0) { map.fitBounds(allBounds); }
 
-      // 47 Prefectures Summary & Interactive Filter
-      let visitedPrefCount = 0;
-      let stayPrefCount = 0;
-      let eastJapanCount = 0;
-      let westJapanCount = 0;
+      let visitedPrefCount = 0, stayPrefCount = 0, eastJapanCount = 0, westJapanCount = 0;
       const regionVisited = { HOKKAIDO: 0, TOHOKU: 0, KANTO: 0, CHUBU: 0, KINKI: 0, CHUGOKU: 0, SHIKOKU: 0, KYUSHU: 0, OKINAWA: 0 };
       let prefHtml = '';
       PREFS.forEach(p => {
-        const st = prefStats[p.name];
-        const passDaysCount = st.passDays.size;
+        const st = prefStats[p.name], passDaysCount = st.passDays.size;
         const isReached = (st.stay > 0 || st.visit > 0 || passDaysCount > 0);
-        if (isReached) {
-          visitedPrefCount++;
-          regionVisited[p.reg]++;
-          if (p.side === "EAST") eastJapanCount++;
-          else westJapanCount++;
-        }
+        if (isReached) { visitedPrefCount++; regionVisited[p.reg]++; if (p.side === "EAST") eastJapanCount++; else westJapanCount++; }
         if (st.stay > 0) stayPrefCount++;
-
-        let cls = 'pref-badge';
-        if (st.stay > 0) cls += ' stayed';
-        else if (st.visit > 0) cls += ' visited';
-        else if (passDaysCount > 0) cls += ' passed';
-        if (selectedPrefFilter === p.name) cls += ' selected-pref';
-
+        let cls = 'pref-badge' + (st.stay > 0 ? ' stayed' : (st.visit > 0 ? ' visited' : (passDaysCount > 0 ? ' passed' : ''))) + (selectedPrefFilter === p.name ? ' selected-pref' : '');
         const tipDesc = `宿泊: ${st.stay}回 ／ 立ち寄り: ${st.visit}回 ／ 通過・走行: ${passDaysCount}日<br><span style='color:var(--p-cyan);'>※クリックでこの県のピンのみを地図に表示します</span>`;
         prefHtml += `<div class="${cls}" data-tip-title="${p.name}" data-tip="${tipDesc}" onmouseenter="showPrefDetail('${p.name}', ${st.stay}, ${st.visit}, ${passDaysCount})" onclick="filterByPref('${p.name}', ${st.stay}, ${st.visit}, ${passDaysCount})">${p.name}</div>`;
       });
@@ -2786,9 +1630,7 @@
       document.getElementById('pref-list').innerHTML = prefHtml;
 
       const totalTimeDist = Math.max(distDay + distEve + distNight, 1);
-      const pDay = Math.round(distDay / totalTimeDist * 100);
-      const pEve = Math.round(distEve / totalTimeDist * 100);
-      const pNight = Math.max(0, 100 - pDay - pEve);
+      const pDay = Math.round(distDay / totalTimeDist * 100), pEve = Math.round(distEve / totalTimeDist * 100), pNight = Math.max(0, 100 - pDay - pEve);
       document.getElementById('timeOfDayBar').innerHTML = `
         <div style="display:flex; height:16px; border:2px solid #fff; overflow:hidden; margin-bottom:6px; transform:skewX(-8deg);">
           <div style="width:${pDay}%; background:var(--p-yellow);"></div>
@@ -2802,22 +1644,18 @@
         </div>
       `;
 
-      // Longest Run Top 10
       const sortedSessions = Object.entries(sessionDistance).sort((a, b) => b[1] - a[1]).slice(0, 10);
-      let daysHtml = '';
-      sortedSessions.forEach(([sKey, dist], i) => {
+      document.getElementById('longestDaysList').innerHTML = sortedSessions.map(([sKey, dist], i) => {
         const label = sessionLabels[sKey] || sKey;
-        daysHtml += `<div class="rank-item">
+        return `<div class="rank-item">
           <div class="rank-main" onclick="highlightSession('${sKey}', '${label}')">
             <span class="rank-label"><span class="rank-badge">#${i+1}</span>${label}</span>
             <span class="rank-val">${Math.round(dist).toLocaleString()} km</span>
           </div>
-          <button type="button" class="btn-icon" onclick="ignoreDay('${sKey}')" data-tip-title="EXCLUDE SESSION" data-tip="位置情報の誤記録などにより距離が異常な場合、このセッションを集計・ランキングから除外します。">🚫</button>
+          <button type="button" class="btn-icon" onclick="ignoreDay('${sKey}')" data-tip-title="EXCLUDE SESSION" data-tip="距離が異常な場合、このセッションを除外します。">🚫</button>
         </div>`;
-      });
-      document.getElementById('longestDaysList').innerHTML = daysHtml || '<p class="note">NO DATA</p>';
+      }).join('') || '<p class="note">NO DATA</p>';
 
-      // Farthest Reach Top 5
       const farthestCandidates = [];
       Object.values(recordSpotGroups).forEach(g => {
         if (ignoredSpots[g.spotKey]) return;
@@ -2827,66 +1665,46 @@
       });
       farthestCandidates.sort((a, b) => b.dist - a.dist);
 
-      const uniqueFarthest = [];
-      const seenAreas = new Set();
+      const uniqueFarthest = [], seenAreas = new Set();
       for (const item of farthestCandidates) {
         const areaKey = `${item.lat.toFixed(1)}_${item.lon.toFixed(1)}`;
-        if (!seenAreas.has(areaKey)) {
-          seenAreas.add(areaKey);
-          uniqueFarthest.push(item);
-          if (uniqueFarthest.length >= 5) break;
-        }
+        if (!seenAreas.has(areaKey)) { seenAreas.add(areaKey); uniqueFarthest.push(item); if (uniqueFarthest.length >= 5) break; }
       }
-      let farHtml = '';
-      uniqueFarthest.forEach((item, i) => {
+      document.getElementById('farthestSpotsList').innerHTML = uniqueFarthest.map((item, i) => {
         const dStr = item.date.substring(0, 10).replace(/\//g, '-');
-        farHtml += `<div class="rank-item">
+        return `<div class="rank-item">
           <div class="rank-main" onclick="window.mapObj.setView([${item.lat}, ${item.lon}], 13); if(window.innerWidth<=768)toggleSidebar(false);">
             <span class="rank-label"><span class="rank-badge">#${i+1}</span>${item.pref} (${dStr})</span>
             <span class="rank-val">${Math.round(item.dist).toLocaleString()} km</span>
           </div>
-          <button type="button" class="btn-icon" onclick="highlightRouteByDate('${dStr}')" data-tip-title="SHOW ROUTE" data-tip="この地点に到達した日の走行ルートをハイライト表示します。">🛣️</button>
-          <button type="button" class="btn-icon" onclick="ignoreSpot('${item.spotKey}')" data-tip-title="EXCLUDE SPOT" data-tip="航空機移動など対象外にしたい地点をランキングから除外します。">🚫</button>
+          <button type="button" class="btn-icon" onclick="highlightRouteByDate('${dStr}')" data-tip-title="SHOW ROUTE" data-tip="この日の走行ルートを表示します。">🛣️</button>
+          <button type="button" class="btn-icon" onclick="ignoreSpot('${item.spotKey}')" data-tip-title="EXCLUDE SPOT" data-tip="この地点を除外します。">🚫</button>
         </div>`;
-      });
-      document.getElementById('farthestSpotsList').innerHTML = farHtml || '<p class="note">NO DATA</p>';
+      }).join('') || '<p class="note">NO DATA</p>';
 
       function calcMaxStreak(dateSet) {
         const arr = Array.from(dateSet).sort();
         let maxS = 0, curS = 0, prevT = null;
         arr.forEach(dStr => {
           const t = new Date(dStr).getTime();
-          if (prevT !== null && Math.round((t - prevT) / 86400000) === 1) curS++;
-          else curS = 1;
+          curS = (prevT !== null && Math.round((t - prevT) / 86400000) === 1) ? (curS + 1) : 1;
           if (curS > maxS) maxS = curS;
           prevT = t;
         });
         return maxS;
       }
       const maxAwayStreak = calcMaxStreak(awayDatesSet);
-
       const maxDayDist = sortedSessions.length > 0 ? Math.round(sortedSessions[0][1]) : 0;
       const maxFarDist = uniqueFarthest.length > 0 ? Math.round(uniqueFarthest[0].dist) : 0;
-      const islandsCount = (regionVisited.HOKKAIDO > 0 ? 1 : 0) +
-                           ((regionVisited.KANTO + regionVisited.TOHOKU + regionVisited.CHUBU + regionVisited.KINKI + regionVisited.CHUGOKU) > 0 ? 1 : 0) +
-                           (regionVisited.SHIKOKU > 0 ? 1 : 0) +
-                           (regionVisited.KYUSHU > 0 ? 1 : 0);
-      const dRound = Math.round(totalDist);
-      const nightDistRound = Math.round(distNight);
-      const winterDistRound = Math.round(distWinter);
-      const totalActiveDays = activeDaysSet.size;
-
+      const islandsCount = (regionVisited.HOKKAIDO > 0 ? 1 : 0) + ((regionVisited.KANTO + regionVisited.TOHOKU + regionVisited.CHUBU + regionVisited.KINKI + regionVisited.CHUGOKU) > 0 ? 1 : 0) + (regionVisited.SHIKOKU > 0 ? 1 : 0) + (regionVisited.KYUSHU > 0 ? 1 : 0);
+      const dRound = Math.round(totalDist), nightDistRound = Math.round(distNight), winterDistRound = Math.round(distWinter), totalActiveDays = activeDaysSet.size;
       const honshu4Count = capeReached.oma + capeReached.todoga + capeReached.shiono + capeReached.bishano;
       const mainland4Count = capeReached.soya + capeReached.nosappu + capeReached.sata + capeReached.kouzaki;
 
       /* =========================================================================
        * === [CUSTOMIZE AREA] TROPHY DEFINITIONS (61 ITEMS) ===
-       * - title  : Trophy Name (Supports both Japanese and English)
-       * - cond   : Unlock Requirement (Displayed in bright text on top)
-       * - flavor : Flavor Text / Comment (Displayed in muted gray text below)
        * ========================================================================= */
       const trophies = [
-        // 1. Total Distance (9 Tiers)
         { title: "🛤️ シベリア超特急", cond: "累計走行距離 10,267km以上", flavor: "世界最長の直通鉄道（らしい）。列車は列車で疲れるよね。", cur: dRound, max: 10267, unit: "km" },
         { title: "🐉 万里の長城", cond: "累計走行距離 21,196km以上", flavor: "騎馬隊を防ぐものだったとか。鉄の馬で超えて行け", cur: dRound, max: 21196, unit: "km" },
         { title: "🌍 AROUND THE WORLD", cond: "累計走行距離 40,075km以上", flavor: "赤道をぐるっとひと回り。「地球一周してるんだぜ」って自慢気に語って失笑されるのが定番", cur: dRound, max: 40075, unit: "km" },
@@ -2897,7 +1715,6 @@
         { title: "🌌 HALF MILLION", cond: "累計走行距離 500,000km以上", flavor: "いったい何台乗り潰したんだい？", cur: dRound, max: 500000, unit: "km" },
         { title: "👑 MILLION LEGEND", cond: "累計走行距離 1,000,000km以上", flavor: "トラック運転手さんいつもお疲れ様です", cur: dRound, max: 1000000, unit: "km" },
 
-        // 2. Prefectures & Regions (10 Tiers)
         { title: "🔰 10 Pref.", cond: "10都道府県以上に到達", flavor: "近隣の県境を越えて、広大な日本列島へ飛び出した第一歩", cur: visitedPrefCount, max: 10, unit: "" },
         { title: "🗺️ HALF JAPAN", cond: "24都道府県以上に到達", flavor: "とりあえずご当地名物は食べておこう", cur: visitedPrefCount, max: 24, unit: "" },
         { title: "🗾 探検家", cond: "35都道府県以上に到達", flavor: "ここまで来たらあともう少し", cur: visitedPrefCount, max: 35, unit: "" },
@@ -2909,21 +1726,18 @@
         { title: "🌊 SOUTHERN WIND", cond: "中国5県＋四国4県＋九州7県の計16県すべてに到達", flavor: "瀬戸内の多島美を越え、火の国・南国の風を全身に浴びた", cur: regionVisited.CHUGOKU + regionVisited.SHIKOKU + regionVisited.KYUSHU, max: 16, unit: "" },
         { title: "⛴️ FOUR MAIN ISLANDS", cond: "本州・北海道・四国・九州の4島すべてに到達", flavor: "橋を渡り、海を越え、日本の4大島すべてに轍を刻んだ", cur: islandsCount, max: 4, unit: "" },
 
-        // 3. Single Run Distance (5 Tiers)
         { title: "💨 WEEKEND CRUISER", cond: "1回（1日）の連続走行 100km以上", flavor: "風を感じて100km。最高の休日はいつだってここから始まる", cur: maxDayDist, max: 100, unit: "km" },
         { title: "⚡ SPRINTER", cond: "1回（1日）の連続走行 300km以上", flavor: "ちょっとそこまで300km。このくらいがちょうど良いって", cur: maxDayDist, max: 300, unit: "km" },
         { title: "🏍️ IRON RIDER", cond: "1回（1日）の連続走行 500km以上", flavor: "鋼の体力を持つロングライダー。でも長けりゃいいってもんでもない", cur: maxDayDist, max: 500, unit: "km" },
         { title: "🔥 鉄ケツ", cond: "1回（1日）の連続走行 800km以上", flavor: "ケツ・腰・背中・腕 最初に悲鳴を上げるのは", cur: maxDayDist, max: 800, unit: "km" },
         { title: "🚀 HYPER SONIC", cond: "1回（1日）の連続走行 1,000km以上", flavor: "1日1,000km。限界を超えたキャノンボーラー", cur: maxDayDist, max: 1000, unit: "km" },
 
-        // 4. Farthest Distance from Home (5 Tiers)
         { title: "🧭 100KM", cond: "自宅拠点から直線距離 100km先へ到達", flavor: "いつもの街を抜け出して、隣の空の下へ", cur: maxFarDist, max: 100, unit: "km" },
         { title: "🏔️ EXPEDITION", cond: "自宅拠点から直線距離 300km先へ到達", flavor: "言葉や景色が少しずつ変わり始めた", cur: maxFarDist, max: 300, unit: "km" },
         { title: "📡 LONG RANGE", cond: "自宅拠点から直線距離 500km先へ到達", flavor: "見知らぬ空の下、日常を忘れて", cur: maxFarDist, max: 500, unit: "km" },
         { title: "🌌 ホームシック", cond: "自宅拠点から直線距離 800km先へ到達", flavor: "はるか800km彼方。もう簡単には帰れない", cur: maxFarDist, max: 800, unit: "km" },
         { title: "🌠 EDGE OF JAPAN", cond: "自宅拠点から直線距離 1,000km先へ到達", flavor: "地図の端にピンを刺せ！1,000km先の最果ての地へ", cur: maxFarDist, max: 1000, unit: "km" },
 
-        // 5. Overnight Stays (6 Tiers)
         { title: "🏨 WANDERER", cond: "15以上の都道府県で宿泊を記録", flavor: "見知らぬ街で眠る、自由気ままな放浪者", cur: stayPrefCount, max: 15, unit: "" },
         { title: "⛺ 50 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計50泊以上", flavor: "旅先の宿やキャンプ場こそが、第二のマイホーム", cur: totalStayCount, max: 50, unit: "" },
         { title: "🛌 100 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計100泊以上", flavor: "100の夜を旅先で越えた。枕が変わってもぐっすり眠れる才能", cur: totalStayCount, max: 100, unit: "" },
@@ -2931,13 +1745,11 @@
         { title: "🌌 500 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計500泊以上", flavor: "500の星空と朝焼けを知る、真のノマドトラベラー", cur: totalStayCount, max: 500, unit: "" },
         { title: "👑 1,000 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計1,000泊以上", flavor: "諸国漫遊 住所不定", cur: totalStayCount, max: 1000, unit: "" },
 
-        // 6. Consecutive Nights Away (4 Tiers)
         { title: "🎒 3-DAY TOURER", cond: "3日連続（3泊以上）の外泊・連泊を達成", flavor: "3日以上家に帰らない本気のツーリング。旅はここからが本番だ", cur: maxAwayStreak, max: 3, unit: "d" },
         { title: "🏕️ WEEK-LONG VOYAGER", cond: "7日連続（7泊以上）の外泊・連泊を達成", flavor: "1週間の大冒険。曜日感覚が消えた頃、本当の自由がやってくる", cur: maxAwayStreak, max: 7, unit: "d" },
         { title: "🦅 HALF-MONTH NOMAD", cond: "15日連続（15泊以上）の外泊・連泊を達成", flavor: "半月におよぶ長期遠征。帰りたいと思うか、帰りたくないと思うか", cur: maxAwayStreak, max: 15, unit: "d" },
         { title: "🌍 MONTH-LONG DRIFTER", cond: "30日連続（30泊以上）の外泊・連泊を達成", flavor: "1ヶ月間、風と共に生きる。日常を超越した孤高の旅人", cur: maxAwayStreak, max: 30, unit: "d" },
 
-        // 7. Total Visits (8 Tiers)
         { title: "📍 100 VISITS", cond: "自宅以外の立ち寄り履歴 累計100回以上", flavor: "100回のストップ＆ゴー。地図の上に思い出のピンが増え始めた", cur: totalRawVisitCount, max: 100, unit: "" },
         { title: "📍 300 VISITS", cond: "自宅以外の立ち寄り履歴 累計300回以上", flavor: "道の駅も隠れた名店も、気になる場所には迷わずウインカーを出した", cur: totalRawVisitCount, max: 300, unit: "" },
         { title: "📍 500 VISITS", cond: "自宅以外の立ち寄り履歴 累計500回以上", flavor: "500箇所の寄り道。目的地までのプロセスこそが旅の醍醐味", cur: totalRawVisitCount, max: 500, unit: "" },
@@ -2947,19 +1759,16 @@
         { title: "💎 10,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計10,000回以上", flavor: "1万回の立ち寄り達成。タイムライン、すごいことになってるよ", cur: totalRawVisitCount, max: 10000, unit: "" },
         { title: "👑 30,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計30,000回以上", flavor: "3万回の軌跡。人生のすべてをフィールドワークに捧げた究極の探求者", cur: totalRawVisitCount, max: 30000, unit: "" },
 
-        // 8. Midnight Distance (5 Tiers)
         { title: "🌙 NIGHT WALKER", cond: "深夜帯（22:00〜翌6:00）の累計走行 100km以上", flavor: "寝静まった街を抜け、夜の空気を切り裂いて走る心地よさを知ってしまった", cur: nightDistRound, max: 100, unit: "km" },
         { title: "🦉 NIGHT RIDER", cond: "深夜帯（22:00〜翌6:00）の累計走行 500km以上", flavor: "ヘッドライトが照らす数メートル先だけを信じて", cur: nightDistRound, max: 500, unit: "km" },
         { title: "🌌 MIDNIGHT PHANTOM", cond: "深夜帯（22:00〜翌6:00）の累計走行 1,000km以上", flavor: "スモークシールドなんて置いていけ", cur: nightDistRound, max: 1000, unit: "km" },
         { title: "🦇 LORD OF DARKNESS", cond: "深夜帯（22:00〜翌6:00）の累計走行 3,000km以上", flavor: "月明かりの頼もしさが身に染みる", cur: nightDistRound, max: 3000, unit: "km" },
         { title: "🌑 ETERNAL NIGHT", cond: "深夜帯（22:00〜翌6:00）の累計走行 10,000km以上", flavor: "夜を楽しみ、夜明けを嗜む", cur: nightDistRound, max: 10000, unit: "km" },
 
-        // 9. Seasons & Winter Distance (3 Tiers)
         { title: "🌸 四季折々", cond: "春・夏・秋・冬の全4シーズンで走行を記録", flavor: "桜吹雪も、夏の入道雲も、紅葉も、冬の澄んだ空気もすべて走った", cur: seasonsSet.size, max: 4, unit: "" },
         { title: "⛄ SNOWMAN", cond: "冬（12月〜2月）の累計走行距離 3,000km以上", flavor: "凍てつく北風も氷点下の朝も関係ない", cur: winterDistRound, max: 3000, unit: "km" },
         { title: "🧊 ABSOLUTE ZERO", cond: "冬（12月〜2月）の累計走行距離 10,000km以上", flavor: "装備の大切さを誰よりも知るもの", cur: winterDistRound, max: 10000, unit: "km" },
 
-        // 10. Honshu 4 Extremes -> Mainland 4 Extremes (10 Tiers)
         { title: "⬆️ CAPE OMA", cond: "本州最北端・大間崎（青森県）に到達", flavor: "津軽海峡の荒波とマグロの街。海の向こうには北海道が良く見える", cur: capeReached.oma, max: 1, unit: "" },
         { title: "➡️ CAPE TODOGASAKI", cond: "本州最東端・魹ヶ崎（岩手県）に到達", flavor: "駐車場から小一時間トレッキング。森をぬけるとそこは最果ての灯台", cur: capeReached.todoga, max: 1, unit: "" },
         { title: "⬇️ CAPE SHIONOMISAKI", cond: "本州最南端・潮岬（和歌山県）に到達", flavor: "地球が丸く見える水平線。最南端っていうと意外な顔されがち", cur: capeReached.shiono, max: 1, unit: "" },
@@ -2972,7 +1781,6 @@
         { title: "⬅️ CAPE KOUZAKI", cond: "本土最西端・神崎鼻（長崎県）に到達", flavor: "五島灘に沈む夕陽を見送る、本土最西端の静かなる岬", cur: capeReached.kouzaki, max: 1, unit: "" },
         { title: "👑 本土四端", cond: "本土四端（宗谷・納沙布・佐多・神崎鼻）すべてに到達", flavor: "東西南北、日本の端っこをすべて繋いだ！すべての旅人が憧れる大偉業", cur: mainland4Count, max: 4, unit: "" }
       ];
-      /* ========================================================================= */
 
       let unlockedCount = 0;
       document.getElementById('trophyList').innerHTML = trophies.map(t => {
@@ -2980,24 +1788,40 @@
         if (ok) unlockedCount++;
         const pct = Math.min(100, Math.round((t.cur / t.max) * 100));
         const tipHtml = `<div class='tt-cond'>${t.cond}</div><div class='tt-flavor'>${t.flavor}</div>`;
-        return `
-          <div class="trophy-card ${ok ? 'unlocked' : ''}" data-tip-title="${t.title}" data-tip="${tipHtml}">
-            <div class="trophy-title">${ok ? '🃏' : '🔒'} ${t.title}</div>
-            <div class="trophy-prog-bg"><div class="trophy-prog-fill" style="width:${pct}%"></div></div>
-            <div class="trophy-stat">
-              <span>${t.cur.toLocaleString()}/${t.max.toLocaleString()}${t.unit}</span>
-              <span class="trophy-pct">${pct}%</span>
-            </div>
-          </div>
-        `;
+        return `<div class="trophy-card ${ok ? 'unlocked' : ''}" data-tip-title="${t.title}" data-tip="${tipHtml}">
+          <div class="trophy-title">${ok ? '🃏' : '🔒'} ${t.title}</div>
+          <div class="trophy-prog-bg"><div class="trophy-prog-fill" style="width:${pct}%"></div></div>
+          <div class="trophy-stat"><span>${t.cur.toLocaleString()}/${t.max.toLocaleString()}${t.unit}</span><span class="trophy-pct">${pct}%</span></div>
+        </div>`;
       }).join('');
       document.getElementById('trophySummary').textContent = `🃏 UNLOCKED: ${unlockedCount} / ${trophies.length}`;
 
-      // Yearly Log Rendering
+      const periodSelect = document.getElementById('yearFilter');
+      const periodLabel = (dateStart || dateEnd) ? `${dateStart || 'START'} ~ ${dateEnd || 'NOW'}` : (periodSelect.options[periodSelect.selectedIndex]?.text || 'ALL TIME');
+      latestRecordSnapshot = {
+        periodLabel,
+        totalDist: dRound,
+        activeDays: totalActiveDays,
+        totalVisits: totalRawVisitCount,
+        totalStays: totalStayCount,
+        visitedPrefCount,
+        stayPrefCount,
+        prefStats,
+        longestTop5: sortedSessions.slice(0, 5).map(([sKey, dist]) => ({ label: sessionLabels[sKey] || sKey, dist: Math.round(dist) })),
+        farthestTop5: uniqueFarthest.slice(0, 5).map(item => ({ pref: item.pref, date: item.date.substring(0, 10).replace(/\//g, '-'), dist: Math.round(item.dist) })),
+        extremes: extremes.north.lat > -90 ? [
+          { label: 'NORTH', pref: getPrefName(extremes.north.lat, extremes.north.lon) || 'RECORD', date: extremes.north.date },
+          { label: 'SOUTH', pref: getPrefName(extremes.south.lat, extremes.south.lon) || 'RECORD', date: extremes.south.date },
+          { label: 'EAST', pref: getPrefName(extremes.east.lat, extremes.east.lon) || 'RECORD', date: extremes.east.date },
+          { label: 'WEST', pref: getPrefName(extremes.west.lat, extremes.west.lon) || 'RECORD', date: extremes.west.date }
+        ] : [],
+        pDay, pEve, pNight,
+        trophies,
+        unlockedCount
+      };
+
       let html = `<div class="box">
-        <div class="section-header-row">
-          <div class="section-title">📊 TOTAL DISTANCE</div>
-        </div>
+        <div class="section-header-row"><div class="section-title">📊 TOTAL DISTANCE</div></div>
         <div class="total-dist-wrap">
           <span style="font-size:0.76rem; font-weight:800; color:#ccc;">ACTIVE: ${totalActiveDays.toLocaleString()} DAYS</span>
           <span class="stat-highlight">${dRound.toLocaleString()} km</span>
@@ -3010,43 +1834,261 @@
         </div>
         <table><tr><th>YEAR</th><th>DISTANCE</th><th>VISITS</th></tr>`;
       Object.keys(yearlyDistance).sort().reverse().forEach(y => {
-        const d = Math.round(yearlyDistance[y]);
-        const isSelectedYear = (filterValue === String(y));
-        html += `<tr class="year-row ${isSelectedYear ? 'active-year' : ''}" onclick="selectYearFromLog('${y}')" title="Click to filter ${y}">
-          <td>${isSelectedYear ? '▶ ' : ''}${y}</td>
-          <td>${d.toLocaleString()} km</td>
-          <td>${yearlyVisits[y].toLocaleString()}</td>
-        </tr>`;
+        const d = Math.round(yearlyDistance[y]), isSel = (filterValue === String(y));
+        html += `<tr class="year-row ${isSel ? 'active-year' : ''}" onclick="selectYearFromLog('${y}')"><td>${isSel ? '▶ ' : ''}${y}</td><td>${d.toLocaleString()} km</td><td>${yearlyVisits[y].toLocaleString()}</td></tr>`;
       });
       html += `</table></div>`;
       document.getElementById('stats').innerHTML = html;
     }
 
-    // Route Timelapse Playback
-    window.startTimelapse = function() {
-      if (activePlaybackPoints.length < 2) {
-        alert('タイムラインJSONファイルを先に読み込んでください。');
+    // =========================================================================
+    // 📸 RECORD 1枚画像ジェネレーター (県別の回数を非表示にしてプライバシー保護＆文字切れ解消版！)
+    // =========================================================================
+    window.generateRecordImage = function() {
+      if (!latestRecordSnapshot) {
+        alert('先に「📊 CONFIG」タブで タイムライン.json を読み込んでください。');
         return;
       }
+      const snap = latestRecordSnapshot;
+      const riderName = (document.getElementById('riderNameInput').value || 'PHANTOM RIDER').trim();
+
+      const W = 1400, H = 1980;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      // 1. 背景
+      ctx.fillStyle = '#0d0d0d';
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(230, 0, 18, 0.08)';
+      ctx.lineWidth = 18;
+      for (let i = -H; i < W + H; i += 44) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - H, H); ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#e60012'; ctx.lineWidth = 12;
+      ctx.strokeRect(6, 6, W - 12, H - 12);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+      ctx.strokeRect(20, 20, W - 40, H - 40);
+
+      function drawCardBox(x, y, w, h, title) {
+        ctx.fillStyle = '#e60012';
+        ctx.fillRect(x + 8, y + 8, w, h);
+        ctx.fillStyle = '#161616';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, w, h);
+        if (title) {
+          ctx.font = '900 20px "Montserrat", "Noto Sans JP", sans-serif';
+          const tw = ctx.measureText(title).width + 32;
+          ctx.fillStyle = '#e60012';
+          ctx.fillRect(x + 18, y - 14, tw, 32);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x + 14, y - 18, tw, 32);
+          ctx.strokeStyle = '#000000'; ctx.lineWidth = 2;
+          ctx.strokeRect(x + 14, y - 18, tw, 32);
+          ctx.fillStyle = '#0f0f0f';
+          ctx.fillText(title, x + 30, y + 5);
+        }
+      }
+
+      // 枠内に収まるように自動でフォントサイズを縮小して描画するヘルパー関数
+      function fillTextFit(text, x, y, maxWidth, defaultSize, weight = '900') {
+        let sz = defaultSize;
+        ctx.font = `${weight} ${sz}px "Montserrat", "Noto Sans JP", sans-serif`;
+        while (ctx.measureText(text).width > maxWidth && sz > 9) {
+          sz -= 0.5;
+          ctx.font = `${weight} ${sz}px "Montserrat", "Noto Sans JP", sans-serif`;
+        }
+        ctx.fillText(text, x, y);
+      }
+
+      // 2. ヘッダーバー
+      ctx.fillStyle = '#e60012';
+      ctx.fillRect(20, 20, W - 40, 115);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(20, 135, W - 40, 5);
+
+      ctx.fillStyle = '#0f0f0f';
+      ctx.fillRect(45, 38, 560, 78);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
+      ctx.strokeRect(45, 38, 560, 78);
+      ctx.fillStyle = '#ffe600';
+      ctx.font = '900 42px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillText('🏁 TAKE YOUR ROUTE', 68, 92);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 32px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillText(`RIDER: ${riderName}`, W - 50, 72);
+      ctx.fillStyle = '#ffe600';
+      ctx.font = '800 20px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillText(`PERIOD: ${snap.periodLabel}  //  GENERATED: ${new Date().toLocaleDateString()}`, W - 50, 110);
+      ctx.textAlign = 'left';
+
+      // 3. 上段サマリー4ボックス
+      const topStats = [
+        { label: 'TOTAL DISTANCE', val: `${snap.totalDist.toLocaleString()} km`, sub: `ACTIVE: ${snap.activeDays.toLocaleString()} DAYS` },
+        { label: '47 PREFECTURES', val: `${snap.visitedPrefCount} / 47`, sub: `CLEARED: ${Math.round(snap.visitedPrefCount/47*100)}% (STAY: ${snap.stayPrefCount})` },
+        { label: 'TOTAL VISITS & STAYS', val: `${snap.totalVisits.toLocaleString()} PTS`, sub: `OVERNIGHT STAYS: ${snap.totalStays.toLocaleString()}` },
+        { label: 'AWARDS UNLOCKED', val: `${snap.unlockedCount} / ${snap.trophies.length}`, sub: `COMPLETION: ${Math.round(snap.unlockedCount/snap.trophies.length*100)}%` }
+      ];
+      topStats.forEach((st, i) => {
+        const bx = 40 + i * 334, by = 168, bw = 316, bh = 125;
+        drawCardBox(bx, by, bw, bh, st.label);
+        ctx.fillStyle = '#ffe600';
+        fillTextFit(st.val, bx + 20, by + 72, bw - 40, 38, '900');
+        ctx.fillStyle = '#cccccc';
+        ctx.font = '700 15px "Montserrat", "Noto Sans JP", sans-serif';
+        ctx.fillText(st.sub, bx + 20, by + 105);
+      });
+
+      // 4. 中段左：47都道府県マトリックス（身バレ＆はみ出し防止のため回数は表示せず、県名と色のみスッキリ表示！）
+      drawCardBox(40, 325, 640, 460, '🗾 47 PREFECTURES MATRIX');
+      ctx.font = '800 14px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillStyle = '#e60012'; ctx.fillRect(420, 312, 14, 14); ctx.fillStyle = '#fff'; ctx.fillText('STAY', 440, 324);
+      ctx.fillStyle = '#660008'; ctx.fillRect(495, 312, 14, 14); ctx.fillStyle = '#ff99a2'; ctx.fillText('VISIT', 515, 324);
+      ctx.fillStyle = '#332b00'; ctx.fillRect(570, 312, 14, 14); ctx.fillStyle = '#ffe600'; ctx.fillText('PASS', 590, 324);
+
+      PREFS.forEach((p, idx) => {
+        const col = idx % 8, row = Math.floor(idx / 8);
+        const px = 58 + col * 76, py = 360 + row * 68, pw = 68, ph = 56;
+        const st = snap.prefStats[p.name];
+        const passD = st.passDays.size;
+        if (st.stay > 0) { ctx.fillStyle = '#e60012'; ctx.strokeStyle = '#ffffff'; }
+        else if (st.visit > 0) { ctx.fillStyle = '#4d0006'; ctx.strokeStyle = '#e60012'; }
+        else if (passD > 0) { ctx.fillStyle = '#332b00'; ctx.strokeStyle = '#ffe600'; }
+        else { ctx.fillStyle = '#1a1a1a'; ctx.strokeStyle = '#333333'; }
+
+        ctx.fillRect(px, py, pw, ph);
+        ctx.lineWidth = 2; ctx.strokeRect(px, py, pw, ph);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = (st.stay > 0) ? '#ffffff' : (st.visit > 0 ? '#ffccd0' : (passD > 0 ? '#ffe600' : '#555555'));
+        ctx.font = '900 18px "Noto Sans JP", sans-serif';
+        ctx.fillText(p.name, px + pw / 2, py + 35);
+      });
+      ctx.textAlign = 'left';
+
+      // 5. 中段右：ランキング＆極点レコード
+      drawCardBox(705, 325, 655, 460, '🏆 TOP RECORDS & EXTREMES');
+
+      ctx.fillStyle = '#ffe600'; ctx.font = '900 18px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillText('⚡ LONGEST RUN TOP 5', 725, 368);
+      snap.longestTop5.forEach((item, i) => {
+        const ry = 398 + i * 34;
+        ctx.fillStyle = '#222222'; ctx.fillRect(725, ry - 20, 300, 28);
+        ctx.fillStyle = '#e60012'; ctx.fillRect(725, ry - 20, 6, 28);
+        ctx.fillStyle = '#ffffff';
+        fillTextFit(`#${i+1}  ${item.label}`, 738, ry - 1, 185, 14, '800');
+        ctx.textAlign = 'right'; ctx.fillStyle = '#ffe600'; ctx.font = '800 14px "Montserrat", sans-serif';
+        ctx.fillText(`${item.dist.toLocaleString()} km`, 1015, ry - 1);
+        ctx.textAlign = 'left';
+      });
+
+      ctx.fillStyle = '#00e5ff'; ctx.font = '900 18px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillText('🚀 FARTHEST REACH TOP 5', 1045, 368);
+      snap.farthestTop5.forEach((item, i) => {
+        const ry = 398 + i * 34;
+        ctx.fillStyle = '#222222'; ctx.fillRect(1045, ry - 20, 295, 28);
+        ctx.fillStyle = '#00e5ff'; ctx.fillRect(1045, ry - 20, 6, 28);
+        ctx.fillStyle = '#ffffff';
+        fillTextFit(`#${i+1} ${item.pref} (${item.date.substring(2)})`, 1058, ry - 1, 180, 14, '800');
+        ctx.textAlign = 'right'; ctx.fillStyle = '#ffe600'; ctx.font = '800 14px "Montserrat", sans-serif';
+        ctx.fillText(`${item.dist.toLocaleString()} km`, 1330, ry - 1);
+        ctx.textAlign = 'left';
+      });
+
+      ctx.fillStyle = '#ffe600'; ctx.font = '900 18px "Montserrat", "Noto Sans JP", sans-serif';
+      ctx.fillText('🧭 EXTREME POINTS & TIME RATIO', 725, 590);
+      snap.extremes.forEach((ex, i) => {
+        const exX = 725 + (i % 2) * 310, exY = 622 + Math.floor(i / 2) * 42;
+        ctx.fillStyle = '#222222'; ctx.fillRect(exX, exY - 22, 295, 32);
+        ctx.strokeStyle = '#444444'; ctx.lineWidth = 1; ctx.strokeRect(exX, exY - 22, 295, 32);
+        ctx.fillStyle = '#ffffff'; ctx.font = '800 14px "Montserrat", "Noto Sans JP", sans-serif';
+        ctx.fillText(`👑 ${ex.label}: ${ex.pref}`, exX + 10, exY - 1);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(ex.date, exX + 285, exY - 1);
+        ctx.textAlign = 'left';
+      });
+
+      const barX = 725, barY = 705, barW = 615, barH = 24;
+      const wDay = Math.round(barW * snap.pDay / 100);
+      const wEve = Math.round(barW * snap.pEve / 100);
+      const wNight = Math.max(0, barW - wDay - wEve);
+      ctx.fillStyle = '#ffe600'; ctx.fillRect(barX, barY, wDay, barH);
+      ctx.fillStyle = '#00e5ff'; ctx.fillRect(barX + wDay, barY, wEve, barH);
+      ctx.fillStyle = '#e60012'; ctx.fillRect(barX + wDay + wEve, barY, wNight, barH);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barW, barH);
+
+      ctx.font = '800 15px "Montserrat", sans-serif';
+      ctx.fillStyle = '#ffe600'; ctx.fillText(`☀️ DAY: ${snap.pDay}%`, barX, barY + 48);
+      ctx.fillStyle = '#00e5ff'; ctx.fillText(`🌆 EVE: ${snap.pEve}%`, barX + 230, barY + 48);
+      ctx.fillStyle = '#e60012'; ctx.fillText(`🌙 NIGHT: ${snap.pNight}%`, barX + 460, barY + 48);
+
+      // 6. 下段：全61トロフィー完全一覧グリッド（文字切れを防ぐ自動フォント縮小対応！）
+      drawCardBox(40, 815, 1320, 1120, `🎮 AWARDS COLLECTION (${snap.unlockedCount} / ${snap.trophies.length} UNLOCKED)`);
+
+      const cols = 5, cellW = 252, cellH = 74, gapX = 8, gapY = 9;
+      snap.trophies.forEach((t, idx) => {
+        const c = idx % cols, r = Math.floor(idx / cols);
+        const tx = 54 + c * (cellW + gapX), ty = 850 + r * (cellH + gapY);
+        const ok = t.cur >= t.max;
+        const pct = Math.min(100, Math.round((t.cur / t.max) * 100));
+
+        ctx.fillStyle = ok ? '#0f0f0f' : '#141414';
+        ctx.fillRect(tx, ty, cellW, cellH);
+        ctx.strokeStyle = ok ? '#ffffff' : '#2e2e2e';
+        ctx.lineWidth = ok ? 2 : 1;
+        ctx.strokeRect(tx, ty, cellW, cellH);
+        if (ok) {
+          ctx.fillStyle = '#e60012';
+          ctx.fillRect(tx, ty, 5, cellH);
+        }
+
+        ctx.fillStyle = ok ? '#ffe600' : '#666666';
+        const cleanTitle = (ok ? '★ ' : '🔒 ') + t.title;
+        fillTextFit(cleanTitle, tx + 10, ty + 22, cellW - 18, 13, '900');
+
+        ctx.fillStyle = ok ? '#cccccc' : '#444444';
+        fillTextFit(t.cond, tx + 10, ty + 39, cellW - 18, 10, '600');
+
+        const pbx = tx + 10, pby = ty + 47, pbw = cellW - 20, pbh = 6;
+        ctx.fillStyle = '#262626'; ctx.fillRect(pbx, pby, pbw, pbh);
+        ctx.fillStyle = ok ? '#e60012' : '#555555';
+        ctx.fillRect(pbx, pby, Math.round(pbw * pct / 100), pbh);
+
+        ctx.font = '700 11px Consolas, monospace';
+        ctx.fillStyle = ok ? '#ffffff' : '#666666';
+        ctx.fillText(`${t.cur.toLocaleString()}/${t.max.toLocaleString()}${t.unit}`, tx + 10, ty + 67);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = ok ? '#ffe600' : '#555555';
+        ctx.fillText(`${pct}%`, tx + cellW - 8, ty + 67);
+        ctx.textAlign = 'left';
+      });
+
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `TAKE_YOUR_ROUTE_RECORD_${new Date().toISOString().substring(0,10)}.png`;
+      a.click();
+    };
+
+    // Route Timelapse Playback
+    window.startTimelapse = function() {
+      if (activePlaybackPoints.length < 2) { alert('タイムラインJSONファイルを先に読み込んでください。'); return; }
       stopTimelapse();
       if (window.innerWidth <= 768) toggleSidebar(false);
-
       document.getElementById('btnPlay').style.display = 'none';
       document.getElementById('btnStop').style.display = 'block';
 
       const speed = parseInt(document.getElementById('playSpeed').value, 10);
       let idx = 0;
-      const bikeIcon = L.divIcon({ className: 'bike-marker', html: '🏍️', iconSize: [30, 30], iconAnchor: [15, 15] });
-      const bikeMarker = L.marker(activePlaybackPoints[0].pt, { icon: bikeIcon, zIndexOffset: 1500 }).addTo(animLayer);
+      const bikeMarker = L.marker(activePlaybackPoints[0].pt, { icon: L.divIcon({ className: 'bike-marker', html: '🏍️', iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 1500 }).addTo(animLayer);
       const trailLine = L.polyline([], { color: '#ffe600', weight: 5, opacity: 0.95, renderer: canvasRenderer }).addTo(animLayer);
 
       animTimer = setInterval(() => {
         for (let s = 0; s < speed; s++) {
-          if (idx >= activePlaybackPoints.length) {
-            stopTimelapse();
-            document.getElementById('playStatus').textContent = "🃏 PLAYBACK COMPLETED";
-            return;
-          }
+          if (idx >= activePlaybackPoints.length) { stopTimelapse(); document.getElementById('playStatus').textContent = "🃏 PLAYBACK COMPLETED"; return; }
           const item = activePlaybackPoints[idx];
           bikeMarker.setLatLng(item.pt);
           trailLine.addLatLng(item.pt);
@@ -3065,12 +2107,8 @@
       document.getElementById('playStatus').textContent = "";
     };
 
-    // =========================================================================
-    // 📸 Deep Binary Exif Scanner + Flexible Filename Date Sync + Thumbnail Saver
-    // =========================================================================
     window.clearMappedPhotos = function() {
       savedPhotos = [];
-      savePhotosToStorage();
       photosLayer.clearLayers();
       document.getElementById('photoInput').value = '';
       document.getElementById('photoRawInput').value = '';
@@ -3079,7 +2117,7 @@
       updateMemoListUI();
     };
 
-    function createThumbnailDataUrl(file, maxDim = 320) {
+    function createThumbnailDataUrl(file, maxDim = 260) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -3091,11 +2129,9 @@
               else { w = Math.round(w * maxDim / h); h = maxDim; }
             }
             const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.78));
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.72));
           };
           img.onerror = () => resolve(e.target.result);
           img.src = e.target.result;
@@ -3108,38 +2144,19 @@
     function extractExifFromBuffer(buffer) {
       const view = new DataView(buffer);
       if (view.byteLength < 12 || view.getUint16(0, false) !== 0xFFD8) return null;
-
-      let offset = 2;
-      let bestResult = { lat: null, lon: null, dateStr: null };
-
+      let offset = 2, bestResult = { lat: null, lon: null, dateStr: null };
       while (offset + 4 < view.byteLength) {
-        if (view.getUint8(offset) !== 0xFF) {
-          offset++;
-          continue;
-        }
+        if (view.getUint8(offset) !== 0xFF) { offset++; continue; }
         const marker = view.getUint8(offset + 1);
-        if (marker === 0xFF) {
-          offset++;
-          continue;
-        }
+        if (marker === 0xFF) { offset++; continue; }
         if (marker === 0xDA || marker === 0xD9) break;
-
         const segLen = view.getUint16(offset + 2, false);
         if (segLen < 2 || offset + 2 + segLen > view.byteLength) break;
-
-        if (marker === 0xE1 && segLen >= 10) {
-          if (view.getUint32(offset + 4, false) === 0x45786966 && view.getUint16(offset + 8, false) === 0x0000) {
-            const tiffStart = offset + 10;
-            const parsed = parseTiffSegment(view, tiffStart, offset + 2 + segLen);
-            if (parsed) {
-              if (parsed.lat !== null && parsed.lon !== null) {
-                bestResult.lat = parsed.lat;
-                bestResult.lon = parsed.lon;
-              }
-              if (parsed.dateStr && !bestResult.dateStr) {
-                bestResult.dateStr = parsed.dateStr;
-              }
-            }
+        if (marker === 0xE1 && segLen >= 10 && view.getUint32(offset + 4, false) === 0x45786966 && view.getUint16(offset + 8, false) === 0x0000) {
+          const parsed = parseTiffSegment(view, offset + 10, offset + 2 + segLen);
+          if (parsed) {
+            if (parsed.lat !== null && parsed.lon !== null) { bestResult.lat = parsed.lat; bestResult.lon = parsed.lon; }
+            if (parsed.dateStr && !bestResult.dateStr) bestResult.dateStr = parsed.dateStr;
           }
         }
         offset += 2 + segLen;
@@ -3149,18 +2166,13 @@
 
     function parseTiffSegment(view, tiffStart, maxEnd) {
       if (tiffStart + 8 > maxEnd) return null;
-      const byteOrder = view.getUint16(tiffStart, false);
-      const little = (byteOrder === 0x4949);
+      const byteOrder = view.getUint16(tiffStart, false), little = (byteOrder === 0x4949);
       if (!little && byteOrder !== 0x4D4D) return null;
       if (view.getUint16(tiffStart + 2, little) !== 0x002A) return null;
-
       const ifd0Offset = view.getUint32(tiffStart + 4, little);
       if (tiffStart + ifd0Offset + 2 > maxEnd) return null;
 
-      let exifIfdPtr = null;
-      let gpsIfdPtr = null;
-      let dateStr = null;
-
+      let exifIfdPtr = null, gpsIfdPtr = null, dateStr = null;
       function readAscii(valOffset, count) {
         let s = "";
         for (let i = 0; i < count - 1 && valOffset + i < maxEnd; i++) {
@@ -3175,17 +2187,12 @@
       for (let i = 0; i < numEntries0; i++) {
         const entryOffset = tiffStart + ifd0Offset + 2 + i * 12;
         if (entryOffset + 12 > maxEnd) break;
-        const tag = view.getUint16(entryOffset, little);
-        const type = view.getUint16(entryOffset + 2, little);
-        const count = view.getUint32(entryOffset + 4, little);
+        const tag = view.getUint16(entryOffset, little), type = view.getUint16(entryOffset + 2, little), count = view.getUint32(entryOffset + 4, little);
         if (tag === 0x0132 && type === 2 && count >= 10) {
           const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
           if (valOff + count <= maxEnd) dateStr = readAscii(valOff, count);
-        } else if (tag === 0x8769) {
-          exifIfdPtr = view.getUint32(entryOffset + 8, little);
-        } else if (tag === 0x8825) {
-          gpsIfdPtr = view.getUint32(entryOffset + 8, little);
-        }
+        } else if (tag === 0x8769) exifIfdPtr = view.getUint32(entryOffset + 8, little);
+        else if (tag === 0x8825) gpsIfdPtr = view.getUint32(entryOffset + 8, little);
       }
 
       if (exifIfdPtr && tiffStart + exifIfdPtr + 2 <= maxEnd) {
@@ -3193,9 +2200,7 @@
         for (let i = 0; i < numExif; i++) {
           const entryOffset = tiffStart + exifIfdPtr + 2 + i * 12;
           if (entryOffset + 12 > maxEnd) break;
-          const tag = view.getUint16(entryOffset, little);
-          const type = view.getUint16(entryOffset + 2, little);
-          const count = view.getUint32(entryOffset + 4, little);
+          const tag = view.getUint16(entryOffset, little), type = view.getUint16(entryOffset + 2, little), count = view.getUint32(entryOffset + 4, little);
           if ((tag === 0x9003 || tag === 0x9004) && type === 2 && count >= 10) {
             const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
             if (valOff + count <= maxEnd) dateStr = readAscii(valOff, count);
@@ -3206,9 +2211,7 @@
       let lat = null, lon = null;
       if (gpsIfdPtr && tiffStart + gpsIfdPtr + 2 <= maxEnd) {
         const numGps = view.getUint16(tiffStart + gpsIfdPtr, little);
-        let latRef = "N", lonRef = "E";
-        let latVals = null, lonVals = null;
-
+        let latRef = "N", lonRef = "E", latVals = null, lonVals = null;
         function readRationals(valOff, isSigned) {
           if (valOff + 24 > maxEnd) return null;
           const res = [];
@@ -3219,59 +2222,40 @@
           }
           return res[0] + (res[1] / 60) + (res[2] / 3600);
         }
-
         for (let i = 0; i < numGps; i++) {
           const entryOffset = tiffStart + gpsIfdPtr + 2 + i * 12;
           if (entryOffset + 12 > maxEnd) break;
-          const tag = view.getUint16(entryOffset, little);
-          const type = view.getUint16(entryOffset + 2, little);
-          const count = view.getUint32(entryOffset + 4, little);
-          if (tag === 0x0001) {
-            const ch = view.getUint8(entryOffset + 8);
-            if (ch === 83 || ch === 115) latRef = "S";
-          } else if (tag === 0x0003) {
-            const ch = view.getUint8(entryOffset + 8);
-            if (ch === 87 || ch === 119) lonRef = "W";
-          } else if (tag === 0x0002 && (type === 5 || type === 10) && count === 3) {
-            const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
-            latVals = readRationals(valOff, type === 10);
-          } else if (tag === 0x0004 && (type === 5 || type === 10) && count === 3) {
-            const valOff = tiffStart + view.getUint32(entryOffset + 8, little);
-            lonVals = readRationals(valOff, type === 10);
-          }
+          const tag = view.getUint16(entryOffset, little), type = view.getUint16(entryOffset + 2, little), count = view.getUint32(entryOffset + 4, little);
+          if (tag === 0x0001) { const ch = view.getUint8(entryOffset + 8); if (ch === 83 || ch === 115) latRef = "S"; }
+          else if (tag === 0x0003) { const ch = view.getUint8(entryOffset + 8); if (ch === 87 || ch === 119) lonRef = "W"; }
+          else if (tag === 0x0002 && (type === 5 || type === 10) && count === 3) latVals = readRationals(tiffStart + view.getUint32(entryOffset + 8, little), type === 10);
+          else if (tag === 0x0004 && (type === 5 || type === 10) && count === 3) lonVals = readRationals(tiffStart + view.getUint32(entryOffset + 8, little), type === 10);
         }
-
         if (latVals !== null && lonVals !== null && (latVals !== 0 || lonVals !== 0)) {
           lat = latVals * (latRef === "S" ? -1 : 1);
           lon = lonVals * (lonRef === "W" ? -1 : 1);
         }
       }
-
       return { lat, lon, dateStr };
     }
 
     function parsePhotoTimestampInfo(exifDateStr, file) {
       if (exifDateStr) {
-        if (exifDateStr instanceof Date && !isNaN(exifDateStr.getTime())) {
-          return { ms: exifDateStr.getTime(), dateOnlyStr: formatLocalDate(exifDateStr) };
-        }
+        if (exifDateStr instanceof Date && !isNaN(exifDateStr.getTime())) return { ms: exifDateStr.getTime(), dateOnlyStr: formatLocalDate(exifDateStr) };
         const s = String(exifDateStr).trim().replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
         const d = new Date(s);
         if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: formatLocalDate(d) };
       }
-
-      if (file && file.name) {
+      if (file?.name) {
         const fname = file.name;
         const mFull = fname.match(/(20[12]\d)[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])[-_.\sT]*([01]\d|2[0-3])[-_.]?([0-5]\d)(?:[-_.]?([0-5]\d))?/);
         if (mFull) {
-          const sec = mFull[6] || "00";
-          const d = new Date(`${mFull[1]}-${mFull[2]}-${mFull[3]}T${mFull[4]}:${mFull[5]}:${sec}`);
+          const d = new Date(`${mFull[1]}-${mFull[2]}-${mFull[3]}T${mFull[4]}:${mFull[5]}:${mFull[6] || "00"}`);
           if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: `${mFull[1]}-${mFull[2]}-${mFull[3]}` };
         }
         const mDate = fname.match(/(20[12]\d)[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])/);
         if (mDate) {
-          const dStr = `${mDate[1]}-${mDate[2]}-${mDate[3]}`;
-          const d = new Date(`${dStr}T12:00:00`);
+          const dStr = `${mDate[1]}-${mDate[2]}-${mDate[3]}`, d = new Date(`${dStr}T12:00:00`);
           if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: dStr };
         }
         const mEpoch = fname.match(/(1[5-9]\d{11})/);
@@ -3280,8 +2264,7 @@
           if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: formatLocalDate(d) };
         }
       }
-
-      if (file && file.lastModified) {
+      if (file?.lastModified) {
         const d = new Date(file.lastModified);
         return { ms: file.lastModified, dateOnlyStr: formatLocalDate(d) };
       }
@@ -3290,51 +2273,30 @@
 
     function findClosestTimelineCoord(timeInfo) {
       if (!timeInfo || allTimelinePointsForPhotoSync.length === 0) return null;
-      const targetMs = timeInfo.ms;
-      const targetDateStr = timeInfo.dateOnlyStr;
-
-      let bestSameDayPt = null;
-      let minSameDayDiff = Infinity;
-      let bestOverallPt = null;
-      let minOverallDiff = Infinity;
-
+      const targetMs = timeInfo.ms, targetDateStr = timeInfo.dateOnlyStr;
+      let bestSameDayPt = null, minSameDayDiff = Infinity, bestOverallPt = null, minOverallDiff = Infinity;
       for (let i = 0; i < allTimelinePointsForPhotoSync.length; i++) {
-        const item = allTimelinePointsForPhotoSync[i];
-        const diff = Math.abs(item.ms - targetMs);
-        if (item.dateStr === targetDateStr && diff < minSameDayDiff) {
-          minSameDayDiff = diff;
-          bestSameDayPt = item.pt;
-        }
-        if (diff < minOverallDiff) {
-          minOverallDiff = diff;
-          bestOverallPt = item.pt;
-        }
+        const item = allTimelinePointsForPhotoSync[i], diff = Math.abs(item.ms - targetMs);
+        if (item.dateStr === targetDateStr && diff < minSameDayDiff) { minSameDayDiff = diff; bestSameDayPt = item.pt; }
+        if (diff < minOverallDiff) { minOverallDiff = diff; bestOverallPt = item.pt; }
       }
-
       if (bestSameDayPt) return bestSameDayPt;
-      if (minOverallDiff <= 24 * 3600000) return bestOverallPt;
-      return null;
+      return (minOverallDiff <= 24 * 3600000) ? bestOverallPt : null;
     }
 
     async function handlePhotoFiles(files) {
       if (!files || files.length === 0) return;
-
-      let exifCount = 0;
-      let syncCount = 0;
+      let exifCount = 0, syncCount = 0;
       const photoBounds = [];
-      document.getElementById('photoStatus').textContent = "SCANNING & SAVING PHOTOS…⏳";
+      document.getElementById('photoStatus').textContent = "SCANNING PHOTOS…⏳";
 
       for (const file of files) {
         let lat = null, lon = null, dateStr = "", matchMode = "EXIF GPS";
-
         try {
           const buffer = await file.arrayBuffer();
           const binRes = extractExifFromBuffer(buffer);
           if (binRes) {
-            if (binRes.lat !== null && binRes.lon !== null) {
-              lat = binRes.lat;
-              lon = binRes.lon;
-            }
+            if (binRes.lat !== null && binRes.lon !== null) { lat = binRes.lat; lon = binRes.lon; }
             if (binRes.dateStr) dateStr = binRes.dateStr;
           }
         } catch (e) {}
@@ -3344,74 +2306,48 @@
             const parsed = await exifr.parse(file, { gps: true, tiff: true, exif: true, xmp: true, icc: false, chunked: false });
             if (parsed) {
               if (typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number' && !isNaN(parsed.latitude)) {
-                lat = parsed.latitude;
-                lon = parsed.longitude;
+                lat = parsed.latitude; lon = parsed.longitude;
               }
-              if (!dateStr && (parsed.DateTimeOriginal || parsed.CreateDate)) {
-                dateStr = formatDateTime(parsed.DateTimeOriginal || parsed.CreateDate);
-              }
+              if (!dateStr && (parsed.DateTimeOriginal || parsed.CreateDate)) dateStr = formatDateTime(parsed.DateTimeOriginal || parsed.CreateDate);
             }
           } catch (e) {}
         }
 
         const timeInfo = parsePhotoTimestampInfo(dateStr, file);
-        if (!dateStr && timeInfo) {
-          dateStr = formatDateTime(new Date(timeInfo.ms).toISOString());
-        }
+        if (!dateStr && timeInfo) dateStr = formatDateTime(new Date(timeInfo.ms).toISOString());
 
         if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
           exifCount++;
         } else if (timeInfo && allTimelinePointsForPhotoSync.length > 0) {
           const syncedPt = findClosestTimelineCoord(timeInfo);
-          if (syncedPt) {
-            lat = syncedPt[0];
-            lon = syncedPt[1];
-            matchMode = `⚡SYNC (${timeInfo.dateOnlyStr})`;
-            syncCount++;
-          }
+          if (syncedPt) { lat = syncedPt[0]; lon = syncedPt[1]; matchMode = `⚡SYNC (${timeInfo.dateOnlyStr})`; syncCount++; }
         }
 
         if (lat !== null && lon !== null) {
-          const thumbDataUrl = await createThumbnailDataUrl(file, 320);
+          const thumbDataUrl = await createThumbnailDataUrl(file, 260);
           const photoId = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-          savedPhotos.push({
-            id: photoId,
-            name: file.name,
-            lat: lat,
-            lon: lon,
-            dateStr: dateStr,
-            matchMode: matchMode,
-            memo: "",
-            dataUrl: thumbDataUrl
-          });
+          savedPhotos.push({ id: photoId, name: file.name, lat, lon, dateStr, matchMode, memo: "", dataUrl: thumbDataUrl });
           photoBounds.push([lat, lon]);
         }
       }
 
-      savePhotosToStorage();
       renderSavedPhotosOnMap();
       updateMemoListUI();
 
       const totalAdded = exifCount + syncCount;
       if (totalAdded > 0) {
-        document.getElementById('photoStatus').innerHTML = `🃏 <strong>${totalAdded} / ${files.length} PHOTOS MAPPED &amp; SAVED!</strong><br>(EXIF GPS: ${exifCount}枚 ／ 日時・ファイル名シンクロ: ${syncCount}枚)<br><span style="color:var(--p-cyan);">※『📝 LOGBOOK』タブからJSON出力すると写真ごとバックアップ保存できます！</span>`;
+        document.getElementById('photoStatus').innerHTML = `🃏 <strong>${totalAdded} / ${files.length} PHOTOS MAPPED!</strong><br>(EXIF GPS: ${exifCount}枚 ／ 日時・ファイル名シンクロ: ${syncCount}枚)<br><span style="color:var(--p-cyan);">※『📝 LOGBOOK』タブからJSON出力すると写真ごと保存できます！</span>`;
         map.fitBounds(photoBounds, { padding: [50, 50], maxZoom: 14 });
         if (window.innerWidth <= 768) toggleSidebar(false);
       } else {
-        if (allTimelinePointsForPhotoSync.length === 0) {
-          document.getElementById('photoStatus').innerHTML = "⚠️ 写真内にGPS情報が見つかりませんでした。<br><strong>先に『📊 CONFIG』で タイムライン.json を読み込んでから写真を選択</strong>すると、ファイル名の日付や撮影日時からルート上に自動配置できます！";
-        } else {
-          document.getElementById('photoStatus').innerHTML = "⚠️ 写真内にGPS情報がなく、ファイル名の日付に一致するタイムライン記録も見つかりませんでした。ファイル名に日付（例: <code>20250715.jpg</code>）が含まれているかご確認ください。";
-        }
+        document.getElementById('photoStatus').innerHTML = allTimelinePointsForPhotoSync.length === 0
+          ? "⚠️ 写真内にGPS情報が見つかりませんでした。<br><strong>先に『📊 CONFIG』で タイムライン.json を読み込んでから写真を選択</strong>すると、ファイル名の日付や撮影日時からルート上に自動配置できます！"
+          : "⚠️ 写真内にGPS情報がなく、ファイル名の日付に一致するタイムライン記録も見つかりませんでした。";
       }
     }
 
-    document.getElementById('photoInput').addEventListener('change', function(e) {
-      handlePhotoFiles(Array.from(e.target.files));
-    });
-    document.getElementById('photoRawInput').addEventListener('change', function(e) {
-      handlePhotoFiles(Array.from(e.target.files));
-    });
+    document.getElementById('photoInput').addEventListener('change', e => handlePhotoFiles(Array.from(e.target.files)));
+    document.getElementById('photoRawInput').addEventListener('change', e => handlePhotoFiles(Array.from(e.target.files)));
   </script>
 </body>
 </html>
