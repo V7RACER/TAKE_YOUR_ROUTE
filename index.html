@@ -1203,7 +1203,7 @@
       </div>
     </div>
 
-    <!-- Tab 5: LOGBOOK (ヘルプ？マーク＆写真同梱バックアップ対応) -->
+    <!-- Tab 5: LOGBOOK -->
     <div id="tab-memo" class="tab-content">
       <div class="box">
         <div class="section-header-row">
@@ -1342,9 +1342,9 @@
       renderData();
     };
 
-    // LocalStorage Management (Memos, Photos, Ignored Items)
+    // LocalStorage Management
     let savedMemos = {};
-    let savedPhotos = []; // 写真をBase64サムネイル化して保存・JSON出力するための配列
+    let savedPhotos = [];
     let ignoredDays = {};
     let ignoredSpots = {};
     try {
@@ -1805,7 +1805,6 @@
       updateMemoListUI();
     };
 
-    // 写真メモ保存＆個別削除関数
     window.savePhotoMemo = function(photoId) {
       const item = savedPhotos.find(p => p.id === photoId);
       const input = document.getElementById(`pmemo_${photoId}`);
@@ -1824,7 +1823,6 @@
       updateMemoListUI();
     };
 
-    // LOGBOOK一覧表示（スポットメモ＋保存済み写真の両方を一覧化！）
     function updateMemoListUI() {
       const container = document.getElementById('memoListContainer');
       let html = '';
@@ -1852,7 +1850,6 @@
       container.innerHTML = html || '<p class="note">NO LOGS OR PHOTOS SAVED</p>';
     }
 
-    // 保存済み写真の地図描画関数
     function renderSavedPhotosOnMap() {
       photosLayer.clearLayers();
       if (!savedPhotos || savedPhotos.length === 0) {
@@ -1889,14 +1886,12 @@
       });
     }
 
-    // 初期起動時に保存済みメモ＆写真を復元
     updateMemoListUI();
     renderSavedPhotosOnMap();
 
-    // 💾 LOGBOOK JSONエクスポート（スポットメモ＋写真データの両方を統合出力！）
     window.exportMemos = function() {
       const exportPayload = {
-        version: "10.2",
+        version: "10.3",
         exportedAt: new Date().toISOString(),
         memos: savedMemos,
         photos: savedPhotos
@@ -1908,7 +1903,6 @@
       a.click();
     };
 
-    // 📂 LOGBOOK JSONインポート（旧形式のメモ単体JSONにも、新形式の写真同梱JSONにも両対応！）
     window.importMemos = function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -2129,7 +2123,7 @@
     window.highlightRouteByDate = function(dateStr) {
       const sKeys = dateToSessionsMap[dateStr];
       if (!sKeys || sKeys.length === 0) {
-        alert(`${dateStr} の移動ルートデータが見つかりません。');
+        alert(`${dateStr} の移動ルートデータが見つかりません。`);
         return;
       }
       const combinedSegments = [];
@@ -3085,7 +3079,6 @@
       updateMemoListUI();
     };
 
-    // Generate lightweight Base64 thumbnail so photos can be saved in LocalStorage and exported in JSON
     function createThumbnailDataUrl(file, maxDim = 320) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -3257,36 +3250,30 @@
       return { lat, lon, dateStr };
     }
 
-    // Flexible Filename & Exif Timestamp Parser (Prioritizes filename date over PC transfer lastModified date!)
     function parsePhotoTimestampInfo(exifDateStr, file) {
-      // 1. Exif DateTimeOriginal
       if (exifDateStr) {
         if (exifDateStr instanceof Date && !isNaN(exifDateStr.getTime())) {
           return { ms: exifDateStr.getTime(), dateOnlyStr: formatLocalDate(exifDateStr) };
         }
-        const s = String(exifDateStr).trim().replace(/^(\d{4}):(\d{2}):(\d{2})/, '\$1-\$2-\$3');
+        const s = String(exifDateStr).trim().replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
         const d = new Date(s);
         if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: formatLocalDate(d) };
       }
 
-      // 2. Flexible Filename Date Extraction (Supports YYYYMMDD_HHMMSS, YYYY-MM-DD, YYYYMMDD, 13-digit epoch, etc.)
       if (file && file.name) {
         const fname = file.name;
-        // Pattern A: YYYYMMDD + HHMM(SS)
         const mFull = fname.match(/(20[12]\d)[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])[-_.\sT]*([01]\d|2[0-3])[-_.]?([0-5]\d)(?:[-_.]?([0-5]\d))?/);
         if (mFull) {
           const sec = mFull[6] || "00";
           const d = new Date(`${mFull[1]}-${mFull[2]}-${mFull[3]}T${mFull[4]}:${mFull[5]}:${sec}`);
           if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: `${mFull[1]}-${mFull[2]}-${mFull[3]}` };
         }
-        // Pattern B: Date only in filename (YYYYMMDD or YYYY-MM-DD) -> Defaults to 12:00 noon of that day
         const mDate = fname.match(/(20[12]\d)[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])/);
         if (mDate) {
           const dStr = `${mDate[1]}-${mDate[2]}-${mDate[3]}`;
           const d = new Date(`${dStr}T12:00:00`);
           if (!isNaN(d.getTime())) return { ms: d.getTime(), dateOnlyStr: dStr };
         }
-        // Pattern C: 13-digit epoch milliseconds in filename (e.g. 1723698000000.jpg)
         const mEpoch = fname.match(/(1[5-9]\d{11})/);
         if (mEpoch) {
           const d = new Date(parseInt(mEpoch[1], 10));
@@ -3294,7 +3281,6 @@
         }
       }
 
-      // 3. Fallback to file.lastModified
       if (file && file.lastModified) {
         const d = new Date(file.lastModified);
         return { ms: file.lastModified, dateOnlyStr: formatLocalDate(d) };
@@ -3302,13 +3288,11 @@
       return null;
     }
 
-    // Find closest timeline point (Matches exact time within 24h, or same calendar date!)
     function findClosestTimelineCoord(timeInfo) {
       if (!timeInfo || allTimelinePointsForPhotoSync.length === 0) return null;
       const targetMs = timeInfo.ms;
       const targetDateStr = timeInfo.dateOnlyStr;
 
-      // First try: Same calendar day match (closest time on that day)
       let bestSameDayPt = null;
       let minSameDayDiff = Infinity;
       let bestOverallPt = null;
@@ -3343,7 +3327,6 @@
       for (const file of files) {
         let lat = null, lon = null, dateStr = "", matchMode = "EXIF GPS";
 
-        // Step 1: Full Binary Scan
         try {
           const buffer = await file.arrayBuffer();
           const binRes = extractExifFromBuffer(buffer);
@@ -3356,7 +3339,6 @@
           }
         } catch (e) {}
 
-        // Step 2: Fallback to exifr full library
         if ((lat === null || lon === null) && typeof exifr !== 'undefined') {
           try {
             const parsed = await exifr.parse(file, { gps: true, tiff: true, exif: true, xmp: true, icc: false, chunked: false });
@@ -3372,7 +3354,6 @@
           } catch (e) {}
         }
 
-        // Step 3: Filename / Timestamp Sync with Timeline
         const timeInfo = parsePhotoTimestampInfo(dateStr, file);
         if (!dateStr && timeInfo) {
           dateStr = formatDateTime(new Date(timeInfo.ms).toISOString());
