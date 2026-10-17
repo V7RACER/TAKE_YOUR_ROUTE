@@ -9,10 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,900;1,900&family=Noto+Sans+JP:wght@600;800;900&display=swap" rel="stylesheet">
-  <!-- Leaflet & Exif.js -->
+  <!-- Leaflet & Modern Exifr Library -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
   <style>
     :root {
       --p-red: #e60012;
@@ -685,16 +685,17 @@
       background: var(--p-red);
       color: var(--p-white);
       border: 2px solid var(--p-white);
-      padding: 8px 12px;
+      padding: 8px 10px;
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 800;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       width: 100%;
       margin-bottom: 6px;
-      white-space: nowrap;
-      transform: skewX(-6deg);
-      box-shadow: 4px 4px 0 var(--p-white);
+      white-space: normal;
+      line-height: 1.3;
+      transform: skewX(-4deg);
+      box-shadow: 3px 3px 0 var(--p-white);
       text-transform: uppercase;
       transition: all 0.12s;
     }
@@ -702,24 +703,26 @@
       background: var(--p-yellow);
       color: var(--p-black);
       border-color: var(--p-black);
-      box-shadow: 5px 5px 0 var(--p-red);
-      transform: skewX(-6deg) translateY(-2px);
+      box-shadow: 4px 4px 0 var(--p-red);
+      transform: skewX(-4deg) translateY(-1px);
     }
     .btn-guide {
       background: var(--p-yellow);
       color: var(--p-black);
       border: 2px solid var(--p-white);
-      box-shadow: 4px 4px 0 var(--p-red);
+      box-shadow: 3px 3px 0 var(--p-red);
       margin-bottom: 10px;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
+      padding: 6px 8px;
+      letter-spacing: 0.02em;
     }
     .btn-guide:hover {
       background: var(--p-white);
       color: var(--p-red);
-      box-shadow: 5px 5px 0 var(--p-yellow);
+      box-shadow: 4px 4px 0 var(--p-yellow);
     }
     .btn-stop { background: var(--p-black); color: var(--p-yellow); border-color: var(--p-yellow); }
-    .btn-sub { background: #262626; font-size: 0.74rem; padding: 6px 10px; box-shadow: 3px 3px 0 var(--p-red); }
+    .btn-sub { background: #262626; font-size: 0.72rem; padding: 6px 10px; box-shadow: 3px 3px 0 var(--p-red); }
 
     /* Guide Modal */
     #guide-modal {
@@ -907,7 +910,7 @@
   <div id="guide-modal" onclick="if(event.target===this) toggleGuideModal(false)">
     <div class="modal-card">
       <div class="section-header-row">
-        <div class="section-title">📖 HOW TO EXPORT TIMELINE DATA</div>
+        <div class="section-title">📖 HOW TO EXPORT TIMELINE</div>
         <button type="button" class="btn-icon" onclick="toggleGuideModal(false)">✕</button>
       </div>
       <p style="font-size:0.78rem; color:#ccc; margin-top:0;">
@@ -965,7 +968,7 @@
         <div class="section-header-row">
           <div class="section-title">📂 DATA SOURCE</div>
         </div>
-        <button type="button" class="btn btn-guide" onclick="toggleGuideModal(true)">📖 HOW TO EXPORT TIMELINE.JSON (iOS / Android)</button>
+        <button type="button" class="btn btn-guide" onclick="toggleGuideModal(true)">📖 HOW TO EXPORT JSON (iOS / Android)</button>
         <label>TIMELINE.JSON <span class="help-mark" data-tip-title="TIMELINE JSON FILE" data-tip="AndroidおよびiOS（iPhone）からエクスポートしたタイムラインJSONファイルに対応しています。すべてのデータはブラウザ内のみで安全に処理されます。">?</span></label>
         <input type="file" id="fileInput" accept=".json,application/json">
         
@@ -1182,10 +1185,14 @@
         <div class="section-header-row">
           <div class="section-title">📸 PHOTO MAPPING (EXIF)</div>
         </div>
-        <label>SELECT JPEG PHOTOS <span class="help-mark" data-tip-title="PHOTO EXIF MAPPING" data-tip="GPS位置情報（Exif）が含まれるJPEG写真を選択すると、撮影地点にサムネイルマーカーを配置します。">?</span></label>
-        <input type="file" id="photoInput" accept="image/jpeg,image/jpg,.jpg,.jpeg" multiple>
+        <label>SELECT PHOTOS <span class="help-mark" data-tip-title="PHOTO EXIF MAPPING" data-tip="GPS位置情報（Exif）が含まれる写真を選択すると、撮影地点にサムネイルマーカーを配置します。">?</span></label>
+        <input type="file" id="photoInput" accept="image/jpeg,image/jpg,image/heic,image/webp,.jpg,.jpeg" multiple>
+        <div class="note" style="color:#d1d5db; background:#111; padding:6px 8px; border-left:3px solid var(--p-cyan); margin-bottom:6px;">
+          💡 <strong>スマートフォンでのご注意：</strong><br>
+          Androidの「写真を選択（ギャラリー）」から選ぶと、OSのプライバシー保護機能により位置情報が自動削除される場合があります。位置情報が検出されない場合は、ファイル選択画面で<strong>「フォルダ参照（またはファイルアプリ）」</strong>から元画像を選択してください。
+        </div>
         <button type="button" id="clearPhotosBtn" class="btn btn-sub" style="display:none; margin-top:4px;" onclick="clearMappedPhotos()">🗑️ CLEAR MAPPED PHOTOS</button>
-        <div id="photoStatus" class="note"></div>
+        <div id="photoStatus" class="note" style="color:var(--p-yellow);"></div>
       </div>
     </div>
 
@@ -1538,7 +1545,7 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // Universal Coordinate Parser (Supports Android "35.6°, 139.7°", iOS "geo:35.6,139.7", and E7 integers)
+    // Universal Coordinate Parser
     function parsePoint(pointInput) {
       if (!pointInput) return null;
       if (Array.isArray(pointInput) && pointInput.length === 2) {
@@ -1567,11 +1574,11 @@
       return null;
     }
 
-    // Universal Timeline Data Normalizer (Supports Android, iOS, and Google Takeout JSON formats)
+    // Universal Timeline Data Normalizer (Android, iOS, and Google Takeout JSON)
     function normalizeTimelineData(json) {
       let sourceArray = [];
       if (Array.isArray(json)) {
-        sourceArray = json; // iOS format (root array)
+        sourceArray = json; // iOS format
       } else if (json && Array.isArray(json.semanticSegments)) {
         sourceArray = json.semanticSegments; // Android format
       } else if (json && Array.isArray(json.timelineObjects)) {
@@ -1585,7 +1592,6 @@
       sourceArray.forEach(item => {
         if (!item) return;
 
-        // 1. Legacy Google Takeout format (placeVisit / activitySegment)
         if (item.placeVisit) {
           const pv = item.placeVisit;
           const loc = pv.location || {};
@@ -1638,14 +1644,12 @@
           return;
         }
 
-        // 2. Android & iOS On-Device Export formats
         const startTime = item.startTime;
         const endTime = item.endTime || startTime;
         if (!startTime) return;
 
         const normSeg = { startTime: startTime, endTime: endTime };
 
-        // Visit normalization
         if (item.visit) {
           const top = item.visit.topCandidate || item.visit;
           const locSource = top.placeLocation || item.visit.placeLocation || top;
@@ -1663,7 +1667,6 @@
           }
         }
 
-        // TimelinePath & Activity normalization
         if (Array.isArray(item.timelinePath) && item.timelinePath.length > 0) {
           const baseMs = new Date(startTime).getTime();
           const normPath = [];
@@ -1671,7 +1674,6 @@
             const pt = parsePoint(pObj.point || pObj);
             if (!pt) return;
             let tStr = pObj.time;
-            // iOS format uses durationMinutesOffsetFromStartTime instead of ISO time
             if (!tStr && pObj.durationMinutesOffsetFromStartTime !== undefined && !isNaN(baseMs)) {
               const offsetMin = parseFloat(pObj.durationMinutesOffsetFromStartTime);
               tStr = new Date(baseMs + offsetMin * 60000).toISOString();
@@ -1680,7 +1682,6 @@
           });
           if (normPath.length > 0) normSeg.timelinePath = normPath;
         } else if (item.activity) {
-          // Fallback if segment only has activity start/end
           const actPts = [];
           const sPt = parsePoint(item.activity.start);
           const ePt = parsePoint(item.activity.end);
@@ -1700,7 +1701,7 @@
     function formatDateTime(isoStr) {
       if (!isoStr) return "";
       const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return "";
+      if (isNaN(d.getTime())) return String(isoStr);
       return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     }
 
@@ -2771,90 +2772,90 @@
        * ========================================================================= */
       const trophies = [
         // 1. Total Distance (9 Tiers)
-        { title: "🛤️ EURASIA EXPRESS", cond: "累計走行距離 10,267km以上", flavor: "シベリア鉄道を超え、ユーラシア大陸を横断する距離に到達！", cur: dRound, max: 10267, unit: "km" },
-        { title: "🐉 GREAT WALL RUNNER", cond: "累計走行距離 21,196km以上", flavor: "万里の長城の全長を踏破。果てしない旅路はまだ序章にすぎない。", cur: dRound, max: 21196, unit: "km" },
-        { title: "🌍 AROUND THE WORLD", cond: "累計走行距離 40,075km以上", flavor: "赤道40,075kmをぐるっとひと回り。最初の世界一周だ！", cur: dRound, max: 40075, unit: "km" },
-        { title: "🏅 CENTURY RIDER", cond: "累計走行距離 100,000km以上", flavor: "オドメーターは10万kmの大台へ。ここからが本当のベテラン領域。", cur: dRound, max: 100000, unit: "km" },
-        { title: "🪐 5X EARTH ORBIT", cond: "累計走行距離 200,000km以上", flavor: "地球5周分を走破。走ることを止められない生粋のロードジャンキー。", cur: dRound, max: 200000, unit: "km" },
-        { title: "⚡ LIGHTSPEED 1 SEC", cond: "累計走行距離 300,000km以上", flavor: "光が1秒間に進む距離（約30万km）をタイヤの回転だけで繋ぎ止めた。", cur: dRound, max: 300000, unit: "km" },
-        { title: "🌕 MOON TRAVELER", cond: "累計走行距離 384,400km以上", flavor: "月までぶっ飛べ！大気圏すら突破する圧倒的マイレージ。", cur: dRound, max: 384400, unit: "km" },
-        { title: "🌌 HALF MILLION", cond: "累計走行距離 500,000km以上", flavor: "累計50万km。もはや道そのものと一体化した生きる伝説。", cur: dRound, max: 500000, unit: "km" },
-        { title: "👑 MILLION LEGEND", cond: "累計走行距離 1,000,000km以上", flavor: "前人未到の100万km。月と地球を往復してなお余りある神話の領域へ。", cur: dRound, max: 1000000, unit: "km" },
+        { title: "🛤️ シベリア超特急", cond: "累計走行距離 10,267km以上", flavor: "世界最長の直通鉄道（らしい）。列車は列車で疲れるよね。", cur: dRound, max: 10267, unit: "km" },
+        { title: "🐉 万里の長城", cond: "累計走行距離 21,196km以上", flavor: "騎馬隊を防ぐものだったとか。鉄の馬で超えて行け", cur: dRound, max: 21196, unit: "km" },
+        { title: "🌍 AROUND THE WORLD", cond: "累計走行距離 40,075km以上", flavor: "赤道をぐるっとひと回り。「地球一周してるんだぜ」って自慢気に語って失笑されるのが定番", cur: dRound, max: 40075, unit: "km" },
+        { title: "🏅 平均生涯歩行距離", cond: "累計走行距離 100,000km以上", flavor: "脚は替えがきかないけど、タイミングベルトは替えとけ", cur: dRound, max: 100000, unit: "km" },
+        { title: "🪐 Born to RIDE", cond: "累計走行距離 200,000km以上", flavor: "地球5周分を走破。日本だけで？ハムスターかな？", cur: dRound, max: 200000, unit: "km" },
+        { title: "⚡ 1sec", cond: "累計走行距離 300,000km以上", flavor: "そう、光ならね", cur: dRound, max: 300000, unit: "km" },
+        { title: "🌕 MOON TRAVELER", cond: "累計走行距離 384,400km以上", flavor: "地球に帰る前にスタンド寄りたいんだけど？", cur: dRound, max: 384400, unit: "km" },
+        { title: "🌌 HALF MILLION", cond: "累計走行距離 500,000km以上", flavor: "いったい何台乗り潰したんだい？", cur: dRound, max: 500000, unit: "km" },
+        { title: "👑 MILLION LEGEND", cond: "累計走行距離 1,000,000km以上", flavor: "トラック運転手さんいつもお疲れ様です", cur: dRound, max: 1000000, unit: "km" },
 
         // 2. Prefectures & Regions (10 Tiers)
-        { title: "🔰 10 PREFECTURES", cond: "10都道府県以上に到達", flavor: "近隣の県境を越えて、広大な日本列島へ飛び出した第一歩。", cur: visitedPrefCount, max: 10, unit: "" },
-        { title: "🗺️ HALF JAPAN", cond: "24都道府県以上に到達", flavor: "日本の半分はもう庭みたいなもの。", cur: visitedPrefCount, max: 24, unit: "" },
-        { title: "🗾 JAPAN EXPLORER", cond: "35都道府県以上に到達", flavor: "未踏の県を探す方が難しくなってきた。", cur: visitedPrefCount, max: 35, unit: "" },
-        { title: "👑 ALL JAPAN MASTER", cond: "全47都道府県すべてに到達", flavor: "日本列島、完全制覇。すべての道が君の記憶に繋がっている。", cur: visitedPrefCount, max: 47, unit: "" },
-        { title: "🌅 EAST JAPAN CLEAR", cond: "東日本エリア全20道県に到達", flavor: "北の大地からアルプスまで、東の空はすべて制した。", cur: eastJapanCount, max: 20, unit: "" },
-        { title: "🌇 WEST JAPAN CLEAR", cond: "西日本エリア全27府県に到達", flavor: "古都の風も南国の太陽も、西の果てまで駆け抜けた。", cur: westJapanCount, max: 27, unit: "" },
-        { title: "❄️ NORTHERN FRONTIER", cond: "北海道＋東北6県の計7道県すべてに到達", flavor: "まっすぐな地平線とみちのくのワインディングを愛する者。", cur: regionVisited.HOKKAIDO + regionVisited.TOHOKU, max: 7, unit: "" },
-        { title: "⛩️ CENTRAL & WEST", cond: "中部9県＋近畿7府県の計16府県すべてに到達", flavor: "日本の大動脈と歴史の中心地を縦横無尽に駆け巡る。", cur: regionVisited.CHUBU + regionVisited.KINKI, max: 16, unit: "" },
-        { title: "🌊 SOUTHERN WIND", cond: "中国5県＋四国4県＋九州7県の計16県すべてに到達", flavor: "瀬戸内の多島美を越え、火の国・南国の風を全身に浴びて。", cur: regionVisited.CHUGOKU + regionVisited.SHIKOKU + regionVisited.KYUSHU, max: 16, unit: "" },
-        { title: "⛴️ FOUR MAIN ISLANDS", cond: "本州・北海道・四国・九州の4島すべてに到達", flavor: "橋を渡り、海を越え、日本の4大島すべてにタイヤ跡を刻め！", cur: islandsCount, max: 4, unit: "" },
+        { title: "🔰 10 Pref.", cond: "10都道府県以上に到達", flavor: "近隣の県境を越えて、広大な日本列島へ飛び出した第一歩", cur: visitedPrefCount, max: 10, unit: "" },
+        { title: "🗺️ HALF JAPAN", cond: "24都道府県以上に到達", flavor: "とりあえずご当地名物は食べておこう", cur: visitedPrefCount, max: 24, unit: "" },
+        { title: "🗾 探検家", cond: "35都道府県以上に到達", flavor: "ここまで来たらあともう少し", cur: visitedPrefCount, max: 35, unit: "" },
+        { title: "👑 全国制覇", cond: "全47都道府県すべてに到達", flavor: "日本とか知らないけど、たぶん全県踏んだぜ", cur: visitedPrefCount, max: 47, unit: "" },
+        { title: "🌅 EAST JAPAN", cond: "東日本エリア全20道県に到達", flavor: "北の大地からアルプスまで、東の空はすべて制した", cur: eastJapanCount, max: 20, unit: "" },
+        { title: "🌇 WEST JAPAN", cond: "西日本エリア全27府県に到達", flavor: "古都の風も南国の太陽も、西の果てまで駆け抜けた", cur: westJapanCount, max: 27, unit: "" },
+        { title: "❄️ NORTHERN FRONTIER", cond: "北海道＋東北6県の計7道県すべてに到達", flavor: "まっすぐな地平線とみちのくのワインディングを愛する者", cur: regionVisited.HOKKAIDO + regionVisited.TOHOKU, max: 7, unit: "" },
+        { title: "⛩️ CENTRAL & WEST", cond: "中部9県＋近畿7府県の計16府県すべてに到達", flavor: "日本の大動脈と歴史の中心地を縦横無尽に駆け巡った", cur: regionVisited.CHUBU + regionVisited.KINKI, max: 16, unit: "" },
+        { title: "🌊 SOUTHERN WIND", cond: "中国5県＋四国4県＋九州7県の計16県すべてに到達", flavor: "瀬戸内の多島美を越え、火の国・南国の風を全身に浴びた", cur: regionVisited.CHUGOKU + regionVisited.SHIKOKU + regionVisited.KYUSHU, max: 16, unit: "" },
+        { title: "⛴️ FOUR MAIN ISLANDS", cond: "本州・北海道・四国・九州の4島すべてに到達", flavor: "橋を渡り、海を越え、日本の4大島すべてに轍を刻んだ", cur: islandsCount, max: 4, unit: "" },
 
         // 3. Single Run Distance (5 Tiers)
-        { title: "💨 WEEKEND CRUISER", cond: "1回（1日）の連続走行 100km以上", flavor: "風を感じて100km。最高の休日はいつだってここから始まる。", cur: maxDayDist, max: 100, unit: "km" },
-        { title: "⚡ SPRINTER", cond: "1回（1日）の連続走行 300km以上", flavor: "ちょっとそこまで300km。本格的な旅のウォーミングアップ。", cur: maxDayDist, max: 300, unit: "km" },
-        { title: "🏍️ IRON RIDER", cond: "1回（1日）の連続走行 500km以上", flavor: "日帰り500kmは当たり前？鋼の体力を持つロングライダー。", cur: maxDayDist, max: 500, unit: "km" },
-        { title: "🔥 CANNONBALL", cond: "1回（1日）の連続走行 800km以上", flavor: "朝から晩までスロットルを開け続けた、狂気と情熱の800km。", cur: maxDayDist, max: 800, unit: "km" },
-        { title: "🚀 HYPER SONIC", cond: "1回（1日）の連続走行 1,000km以上", flavor: "1日1,000km突破。人間の限界を超えた伝説のキャノンボーラー！", cur: maxDayDist, max: 1000, unit: "km" },
+        { title: "💨 WEEKEND CRUISER", cond: "1回（1日）の連続走行 100km以上", flavor: "風を感じて100km。最高の休日はいつだってここから始まる", cur: maxDayDist, max: 100, unit: "km" },
+        { title: "⚡ SPRINTER", cond: "1回（1日）の連続走行 300km以上", flavor: "ちょっとそこまで300km。このくらいがちょうど良いって", cur: maxDayDist, max: 300, unit: "km" },
+        { title: "🏍️ IRON RIDER", cond: "1回（1日）の連続走行 500km以上", flavor: "鋼の体力を持つロングライダー。でも長けりゃいいってもんでもない", cur: maxDayDist, max: 500, unit: "km" },
+        { title: "🔥 鉄ケツ", cond: "1回（1日）の連続走行 800km以上", flavor: "ケツ・腰・背中・腕 最初に悲鳴を上げるのは", cur: maxDayDist, max: 800, unit: "km" },
+        { title: "🚀 HYPER SONIC", cond: "1回（1日）の連続走行 1,000km以上", flavor: "1日1,000km。限界を超えたキャノンボーラー", cur: maxDayDist, max: 1000, unit: "km" },
 
         // 4. Farthest Distance from Home (5 Tiers)
-        { title: "🧭 100KM RADIUS", cond: "自宅拠点から直線距離 100km先へ到達", flavor: "いつもの街を抜け出して、隣の空の下へ。", cur: maxFarDist, max: 100, unit: "km" },
-        { title: "🏔️ 300KM EXPEDITION", cond: "自宅拠点から直線距離 300km先へ到達", flavor: "言葉や景色が少しずつ変わり始める、300km先の旅路。", cur: maxFarDist, max: 300, unit: "km" },
-        { title: "📡 LONG RANGE", cond: "自宅拠点から直線距離 500km先へ到達", flavor: "日常を置き去りにして、500km先の見知らぬ空の下へ。", cur: maxFarDist, max: 500, unit: "km" },
-        { title: "🌌 FAR HORIZON", cond: "自宅拠点から直線距離 800km先へ到達", flavor: "はるか800km彼方。もう簡単には帰れない場所まで来た。", cur: maxFarDist, max: 800, unit: "km" },
-        { title: "🌠 EDGE OF JAPAN", cond: "自宅拠点から直線距離 1,000km先へ到達", flavor: "地図の端っこにピンを刺せ！1,000km先の最果ての地へ。", cur: maxFarDist, max: 1000, unit: "km" },
+        { title: "🧭 100KM", cond: "自宅拠点から直線距離 100km先へ到達", flavor: "いつもの街を抜け出して、隣の空の下へ", cur: maxFarDist, max: 100, unit: "km" },
+        { title: "🏔️ EXPEDITION", cond: "自宅拠点から直線距離 300km先へ到達", flavor: "言葉や景色が少しずつ変わり始めた", cur: maxFarDist, max: 300, unit: "km" },
+        { title: "📡 LONG RANGE", cond: "自宅拠点から直線距離 500km先へ到達", flavor: "見知らぬ空の下、日常を忘れて", cur: maxFarDist, max: 500, unit: "km" },
+        { title: "🌌 ホームシック", cond: "自宅拠点から直線距離 800km先へ到達", flavor: "はるか800km彼方。もう簡単には帰れない", cur: maxFarDist, max: 800, unit: "km" },
+        { title: "🌠 EDGE OF JAPAN", cond: "自宅拠点から直線距離 1,000km先へ到達", flavor: "地図の端にピンを刺せ！1,000km先の最果ての地へ", cur: maxFarDist, max: 1000, unit: "km" },
 
         // 5. Overnight Stays (6 Tiers)
-        { title: "🏨 WANDERER", cond: "15以上の都道府県で宿泊を記録", flavor: "ヘルメットを脱いで見知らぬ街で眠る、自由気ままな放浪者。", cur: stayPrefCount, max: 15, unit: "" },
-        { title: "⛺ 50 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計50泊以上", flavor: "旅先の宿やキャンプ場こそが、俺の第二のマイホーム。", cur: totalStayCount, max: 50, unit: "" },
-        { title: "🛌 100 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計100泊以上", flavor: "100の夜を旅先で越えた。枕が変わってもぐっすり眠れる才能。", cur: totalStayCount, max: 100, unit: "" },
-        { title: "🏮 300 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計300泊以上", flavor: "ほぼ1年分を外で過ごした計算。旅慣れた背中に哀愁が漂う。", cur: totalStayCount, max: 300, unit: "" },
-        { title: "🌌 500 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計500泊以上", flavor: "500の星空と朝焼けを知る、真のノマドトラベラー。", cur: totalStayCount, max: 500, unit: "" },
-        { title: "👑 1,000 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計1,000泊以上", flavor: "千夜一夜物語。日本中のあらゆる街に想い出の宿がある。", cur: totalStayCount, max: 1000, unit: "" },
+        { title: "🏨 WANDERER", cond: "15以上の都道府県で宿泊を記録", flavor: "見知らぬ街で眠る、自由気ままな放浪者", cur: stayPrefCount, max: 15, unit: "" },
+        { title: "⛺ 50 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計50泊以上", flavor: "旅先の宿やキャンプ場こそが、第二のマイホーム", cur: totalStayCount, max: 50, unit: "" },
+        { title: "🛌 100 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計100泊以上", flavor: "100の夜を旅先で越えた。枕が変わってもぐっすり眠れる才能", cur: totalStayCount, max: 100, unit: "" },
+        { title: "🏮 300 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計300泊以上", flavor: "ほぼ1年分を外で過ごした計算。旅慣れた背中に哀愁が漂う", cur: totalStayCount, max: 300, unit: "" },
+        { title: "🌌 500 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計500泊以上", flavor: "500の星空と朝焼けを知る、真のノマドトラベラー", cur: totalStayCount, max: 500, unit: "" },
+        { title: "👑 1,000 NIGHTS OUT", cond: "自宅以外での宿泊記録 累計1,000泊以上", flavor: "諸国漫遊 住所不定", cur: totalStayCount, max: 1000, unit: "" },
 
         // 6. Consecutive Nights Away (4 Tiers)
-        { title: "🎒 3-DAY TOURER", cond: "3日連続（3泊以上）の外泊・連泊を達成", flavor: "3日以上家に帰らない本気のツーリング。旅はここからが本番だ。", cur: maxAwayStreak, max: 3, unit: "d" },
-        { title: "🏕️ WEEK-LONG VOYAGER", cond: "7日連続（7泊以上）の外泊・連泊を達成", flavor: "1週間の大冒険。曜日感覚が消えた頃、本当の自由がやってくる。", cur: maxAwayStreak, max: 7, unit: "d" },
-        { title: "🦅 HALF-MONTH NOMAD", cond: "15日連続（15泊以上）の外泊・連泊を達成", flavor: "半月におよぶ長期遠征。相棒のバイクが生活のすべてになる。", cur: maxAwayStreak, max: 15, unit: "d" },
-        { title: "🌍 MONTH-LONG DRIFTER", cond: "30日連続（30泊以上）の外泊・連泊を達成", flavor: "1ヶ月間、風と共に生きる。日常を完全に超越した孤高の旅人。", cur: maxAwayStreak, max: 30, unit: "d" },
+        { title: "🎒 3-DAY TOURER", cond: "3日連続（3泊以上）の外泊・連泊を達成", flavor: "3日以上家に帰らない本気のツーリング。旅はここからが本番だ", cur: maxAwayStreak, max: 3, unit: "d" },
+        { title: "🏕️ WEEK-LONG VOYAGER", cond: "7日連続（7泊以上）の外泊・連泊を達成", flavor: "1週間の大冒険。曜日感覚が消えた頃、本当の自由がやってくる", cur: maxAwayStreak, max: 7, unit: "d" },
+        { title: "🦅 HALF-MONTH NOMAD", cond: "15日連続（15泊以上）の外泊・連泊を達成", flavor: "半月におよぶ長期遠征。帰りたいと思うか、帰りたくないと思うか", cur: maxAwayStreak, max: 15, unit: "d" },
+        { title: "🌍 MONTH-LONG DRIFTER", cond: "30日連続（30泊以上）の外泊・連泊を達成", flavor: "1ヶ月間、風と共に生きる。日常を超越した孤高の旅人", cur: maxAwayStreak, max: 30, unit: "d" },
 
         // 7. Total Visits (8 Tiers)
-        { title: "📍 100 VISITS", cond: "自宅以外の立ち寄り履歴 累計100回以上", flavor: "100回のストップ＆ゴー。地図の上に思い出のピンが増え始めた。", cur: totalRawVisitCount, max: 100, unit: "" },
-        { title: "📍 300 VISITS", cond: "自宅以外の立ち寄り履歴 累計300回以上", flavor: "道の駅も隠れた名店も、気になる場所には迷わずウインカーを出す。", cur: totalRawVisitCount, max: 300, unit: "" },
-        { title: "📍 500 VISITS", cond: "自宅以外の立ち寄り履歴 累計500回以上", flavor: "500箇所の寄り道。目的地までのプロセスこそが旅の醍醐味だ。", cur: totalRawVisitCount, max: 500, unit: "" },
-        { title: "🎯 1,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計1,000回以上", flavor: "立ち寄った数だけドラマがある。千の景色を見てきた瞳。", cur: totalRawVisitCount, max: 1000, unit: "" },
-        { title: "🎯 3,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計3,000回以上", flavor: "3,000回のチェックイン。日本中のあらゆる街角に足跡が残る。", cur: totalRawVisitCount, max: 3000, unit: "" },
-        { title: "🌟 5,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計5,000回以上", flavor: "圧倒的な行動力。5,000ものスポットを巡り尽くした生きたガイドブック。", cur: totalRawVisitCount, max: 5000, unit: "" },
-        { title: "💎 10,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計10,000回以上", flavor: "1万回の立ち寄り達成！あなたのタイムラインはもはや国の重要文化財。", cur: totalRawVisitCount, max: 10000, unit: "" },
-        { title: "👑 30,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計30,000回以上", flavor: "3万回の軌跡。人生のすべてをフィールドワークに捧げた究極の探求者。", cur: totalRawVisitCount, max: 30000, unit: "" },
+        { title: "📍 100 VISITS", cond: "自宅以外の立ち寄り履歴 累計100回以上", flavor: "100回のストップ＆ゴー。地図の上に思い出のピンが増え始めた", cur: totalRawVisitCount, max: 100, unit: "" },
+        { title: "📍 300 VISITS", cond: "自宅以外の立ち寄り履歴 累計300回以上", flavor: "道の駅も隠れた名店も、気になる場所には迷わずウインカーを出した", cur: totalRawVisitCount, max: 300, unit: "" },
+        { title: "📍 500 VISITS", cond: "自宅以外の立ち寄り履歴 累計500回以上", flavor: "500箇所の寄り道。目的地までのプロセスこそが旅の醍醐味", cur: totalRawVisitCount, max: 500, unit: "" },
+        { title: "🎯 1,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計1,000回以上", flavor: "立ち寄った数だけドラマがある。千の景色を見てきた瞳", cur: totalRawVisitCount, max: 1000, unit: "" },
+        { title: "🎯 3,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計3,000回以上", flavor: "3,000回のチェックイン。日本中のあらゆる街角に足跡を残した", cur: totalRawVisitCount, max: 3000, unit: "" },
+        { title: "🌟 5,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計5,000回以上", flavor: "圧倒的な行動力。5,000ものスポットを巡り尽くした生きたガイドブック", cur: totalRawVisitCount, max: 5000, unit: "" },
+        { title: "💎 10,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計10,000回以上", flavor: "1万回の立ち寄り達成。タイムライン、すごいことになってるよ", cur: totalRawVisitCount, max: 10000, unit: "" },
+        { title: "👑 30,000 VISITS", cond: "自宅以外の立ち寄り履歴 累計30,000回以上", flavor: "3万回の軌跡。人生のすべてをフィールドワークに捧げた究極の探求者", cur: totalRawVisitCount, max: 30000, unit: "" },
 
         // 8. Midnight Distance (5 Tiers)
-        { title: "🌙 NIGHT WALKER 100", cond: "深夜帯（22:00〜翌6:00）の累計走行 100km以上", flavor: "寝静まった街を抜け、夜の空気を切り裂いて走る心地よさ。", cur: nightDistRound, max: 100, unit: "km" },
-        { title: "🦉 NIGHT RIDER 500", cond: "深夜帯（22:00〜翌6:00）の累計走行 500km以上", flavor: "ヘッドライトが照らす数メートル先だけを信じて、真夜中の国道へ。", cur: nightDistRound, max: 500, unit: "km" },
-        { title: "🌌 MIDNIGHT PHANTOM", cond: "深夜帯（22:00〜翌6:00）の累計走行 1,000km以上", flavor: "誰もいない深夜のハイウェイは俺だけのステージ。1,000kmの夜行録。", cur: nightDistRound, max: 1000, unit: "km" },
-        { title: "🦇 LORD OF DARKNESS", cond: "深夜帯（22:00〜翌6:00）の累計走行 3,000km以上", flavor: "太陽など必要ない。闇夜を3,000km駆け抜けた真のナイトライダー！", cur: nightDistRound, max: 3000, unit: "km" },
-        { title: "🌑 ETERNAL NIGHT", cond: "深夜帯（22:00〜翌6:00）の累計走行 10,000km以上", flavor: "真夜中だけで1万kmを走破。月光と星屑を友とする夜の支配者。", cur: nightDistRound, max: 10000, unit: "km" },
+        { title: "🌙 NIGHT WALKER", cond: "深夜帯（22:00〜翌6:00）の累計走行 100km以上", flavor: "寝静まった街を抜け、夜の空気を切り裂いて走る心地よさを知ってしまった", cur: nightDistRound, max: 100, unit: "km" },
+        { title: "🦉 NIGHT RIDER", cond: "深夜帯（22:00〜翌6:00）の累計走行 500km以上", flavor: "ヘッドライトが照らす数メートル先だけを信じて", cur: nightDistRound, max: 500, unit: "km" },
+        { title: "🌌 MIDNIGHT PHANTOM", cond: "深夜帯（22:00〜翌6:00）の累計走行 1,000km以上", flavor: "スモークシールドなんて置いていけ", cur: nightDistRound, max: 1000, unit: "km" },
+        { title: "🦇 LORD OF DARKNESS", cond: "深夜帯（22:00〜翌6:00）の累計走行 3,000km以上", flavor: "月明かりの頼もしさが身に染みる", cur: nightDistRound, max: 3000, unit: "km" },
+        { title: "🌑 ETERNAL NIGHT", cond: "深夜帯（22:00〜翌6:00）の累計走行 10,000km以上", flavor: "夜を楽しみ、夜明けを嗜む", cur: nightDistRound, max: 10000, unit: "km" },
 
         // 9. Seasons & Winter Distance (3 Tiers)
-        { title: "🌸 4 SEASONS RIDER", cond: "春・夏・秋・冬の全4シーズンで走行を記録", flavor: "桜吹雪も、夏の入道雲も、紅葉も、冬の澄んだ空気もすべて走った。", cur: seasonsSet.size, max: 4, unit: "" },
-        { title: "⛄ WINTER IRONMAN", cond: "冬（12月〜2月）の累計走行距離 3,000km以上", flavor: "凍てつく北風も氷点下の朝も関係ない。冬に3,000kmを走る熱き魂！", cur: winterDistRound, max: 3000, unit: "km" },
-        { title: "🧊 ABSOLUTE ZERO", cond: "冬（12月〜2月）の累計走行距離 10,000km以上", flavor: "厳冬期だけで累計1万km。寒さすら快感に変える不屈のアイアンハート。", cur: winterDistRound, max: 10000, unit: "km" },
+        { title: "🌸 四季折々", cond: "春・夏・秋・冬の全4シーズンで走行を記録", flavor: "桜吹雪も、夏の入道雲も、紅葉も、冬の澄んだ空気もすべて走った", cur: seasonsSet.size, max: 4, unit: "" },
+        { title: "⛄ SNOWMAN", cond: "冬（12月〜2月）の累計走行距離 3,000km以上", flavor: "凍てつく北風も氷点下の朝も関係ない", cur: winterDistRound, max: 3000, unit: "km" },
+        { title: "🧊 ABSOLUTE ZERO", cond: "冬（12月〜2月）の累計走行距離 10,000km以上", flavor: "装備の大切さを誰よりも知るもの", cur: winterDistRound, max: 10000, unit: "km" },
 
         // 10. Honshu 4 Extremes -> Mainland 4 Extremes (10 Tiers)
-        { title: "⬆️ CAPE OMA", cond: "本州最北端・大間崎（青森県）に到達", flavor: "津軽海峡の荒波とマグロの街。ここが本州のてっぺんだ！", cur: capeReached.oma, max: 1, unit: "" },
-        { title: "➡️ CAPE TODOGASAKI", cond: "本州最東端・魹ヶ崎（岩手県）に到達", flavor: "三陸のリアス海岸の奥深く、選ばれし者だけが辿り着ける本州最東の地。", cur: capeReached.todoga, max: 1, unit: "" },
-        { title: "⬇️ CAPE SHIONOMISAKI", cond: "本州最南端・潮岬（和歌山県）に到達", flavor: "地球が丸く見える水平線。太平洋に突き出した本州最南端の岬！", cur: capeReached.shiono, max: 1, unit: "" },
-        { title: "⬅️ CAPE BISHANOHANA", cond: "本州最西端・毘沙ノ鼻（山口県）に到達", flavor: "日本海の荒波に削られた断崖。本州を西の果てまで走り切った証。", cur: capeReached.bishano, max: 1, unit: "" },
-        { title: "👑 HONSHU 4 EXTREMES", cond: "本州四端（大間・魹ヶ崎・潮岬・毘沙ノ鼻）すべてに到達", flavor: "本州の東西南北すべてを制覇！果てしなき本州一周のグランドスラム。", cur: honshu4Count, max: 4, unit: "" },
+        { title: "⬆️ CAPE OMA", cond: "本州最北端・大間崎（青森県）に到達", flavor: "津軽海峡の荒波とマグロの街。海の向こうには北海道が良く見える", cur: capeReached.oma, max: 1, unit: "" },
+        { title: "➡️ CAPE TODOGASAKI", cond: "本州最東端・魹ヶ崎（岩手県）に到達", flavor: "駐車場から小一時間トレッキング。森をぬけるとそこは最果ての灯台", cur: capeReached.todoga, max: 1, unit: "" },
+        { title: "⬇️ CAPE SHIONOMISAKI", cond: "本州最南端・潮岬（和歌山県）に到達", flavor: "地球が丸く見える水平線。最南端っていうと意外な顔されがち", cur: capeReached.shiono, max: 1, unit: "" },
+        { title: "⬅️ CAPE BISHANOHANA", cond: "本州最西端・毘沙ノ鼻（山口県）に到達", flavor: "日本海の荒波に削られた断崖。本州を西の果てまで走り切った証", cur: capeReached.bishano, max: 1, unit: "" },
+        { title: "👑 本州四端", cond: "本州四端（大間・魹ヶ崎・潮岬・毘沙ノ鼻）すべてに到達", flavor: "本州の東西南北すべてを制覇。果てしなき本州一周のグランドスラム", cur: honshu4Count, max: 4, unit: "" },
 
-        { title: "⬆️ CAPE SOYA", cond: "本土最北端・宗谷岬（北海道）に到達", flavor: "北緯45度31分22秒。風雪を越え、ついに辿り着いた日本最北の地！", cur: capeReached.soya, max: 1, unit: "" },
-        { title: "➡️ CAPE NOSAPPU", cond: "本土最東端・納沙布岬（北海道）に到達", flavor: "日本で一番早く朝日が昇る、はるかなる東の果てへ。", cur: capeReached.nosappu, max: 1, unit: "" },
-        { title: "⬇️ CAPE SATA", cond: "本土最南端・佐多岬（鹿児島県）に到達", flavor: "ソテツ揺れる亜熱帯の風。本土の南の終着点に立つ！", cur: capeReached.sata, max: 1, unit: "" },
-        { title: "⬅️ CAPE KOUZAKI", cond: "本土最西端・神崎鼻（長崎県）に到達", flavor: "五島灘に沈む夕陽を見送る、本土最西端の静かなる岬。", cur: capeReached.kouzaki, max: 1, unit: "" },
-        { title: "👑 MAINLAND 4 EXTREMES", cond: "本土四端（宗谷・納沙布・佐多・神崎鼻）すべてに到達", flavor: "東西南北、日本の端っこをすべて繋いだ！すべての旅人が憧れる大偉業。", cur: mainland4Count, max: 4, unit: "" }
+        { title: "⬆️ CAPE SOYA", cond: "本土最北端・宗谷岬（北海道）に到達", flavor: "北緯45度31分22秒。長い長い一本道の果て。ライダーのあこがれの地", cur: capeReached.soya, max: 1, unit: "" },
+        { title: "➡️ CAPE NOSAPPU", cond: "本土最東端・納沙布岬（北海道）に到達", flavor: "はるかなる東の果てへ。夏でもそれなりに防寒を", cur: capeReached.nosappu, max: 1, unit: "" },
+        { title: "⬇️ CAPE SATA", cond: "本土最南端・佐多岬（鹿児島県）に到達", flavor: "ソテツ揺れる亜熱帯の風。本土の南の終着点に立った", cur: capeReached.sata, max: 1, unit: "" },
+        { title: "⬅️ CAPE KOUZAKI", cond: "本土最西端・神崎鼻（長崎県）に到達", flavor: "五島灘に沈む夕陽を見送る、本土最西端の静かなる岬", cur: capeReached.kouzaki, max: 1, unit: "" },
+        { title: "👑 本土四端", cond: "本土四端（宗谷・納沙布・佐多・神崎鼻）すべてに到達", flavor: "東西南北、日本の端っこをすべて繋いだ！すべての旅人が憧れる大偉業", cur: mainland4Count, max: 4, unit: "" }
       ];
       /* ========================================================================= */
 
@@ -2949,23 +2950,7 @@
       document.getElementById('playStatus').textContent = "";
     };
 
-    // Robust Exif Photo Mapping (Supports both Rational objects and raw Numbers)
-    function exifCoordToDeg(arr) {
-      if (!arr || arr.length < 3) return null;
-      const toVal = (v) => {
-        if (typeof v === 'number') return v;
-        if (v && v.numerator !== undefined && v.denominator !== undefined) {
-          return v.denominator !== 0 ? (v.numerator / v.denominator) : 0;
-        }
-        return parseFloat(v) || 0;
-      };
-      const d = toVal(arr[0]);
-      const m = toVal(arr[1]);
-      const s = toVal(arr[2]);
-      if (isNaN(d) || isNaN(m) || isNaN(s)) return null;
-      return d + (m / 60) + (s / 3600);
-    }
-
+    // High-Compatibility Exif Photo Mapping using exifr
     window.clearMappedPhotos = function() {
       photosLayer.clearLayers();
       document.getElementById('photoInput').value = '';
@@ -2973,63 +2958,59 @@
       document.getElementById('clearPhotosBtn').style.display = 'none';
     };
 
-    document.getElementById('photoInput').addEventListener('change', function(e) {
+    document.getElementById('photoInput').addEventListener('change', async function(e) {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
-      if (typeof EXIF === 'undefined') {
-        document.getElementById('photoStatus').textContent = "EXIF LIBRARY LOAD ERROR";
+      if (typeof exifr === 'undefined') {
+        document.getElementById('photoStatus').textContent = "EXIF ENGINE LOAD ERROR";
         return;
       }
 
-      let processed = 0;
       let addedCount = 0;
       const photoBounds = [];
       document.getElementById('photoStatus').textContent = "SCANNING PHOTOS…⏳";
 
-      files.forEach(file => {
-        EXIF.getData(file, function() {
-          processed++;
-          const latArr = EXIF.getTag(this, "GPSLatitude");
-          const lonArr = EXIF.getTag(this, "GPSLongitude");
-          const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
-          const lonRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
-          const dateTime = EXIF.getTag(this, "DateTimeOriginal") || "";
+      for (const file of files) {
+        try {
+          const gps = await exifr.gps(file);
+          if (gps && typeof gps.latitude === 'number' && typeof gps.longitude === 'number' && !isNaN(gps.latitude) && !isNaN(gps.longitude)) {
+            const lat = gps.latitude;
+            const lon = gps.longitude;
 
-          const degLat = exifCoordToDeg(latArr);
-          const degLon = exifCoordToDeg(lonArr);
+            let dateStr = "";
+            try {
+              const meta = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate']);
+              if (meta && (meta.DateTimeOriginal || meta.CreateDate)) {
+                dateStr = formatDateTime(meta.DateTimeOriginal || meta.CreateDate);
+              }
+            } catch (ignore) {}
 
-          if (degLat !== null && degLon !== null && !isNaN(degLat) && !isNaN(degLon)) {
-            const lat = degLat * (String(latRef).toUpperCase().startsWith("S") ? -1 : 1);
-            const lon = degLon * (String(lonRef).toUpperCase().startsWith("W") ? -1 : 1);
+            const imgUrl = URL.createObjectURL(file);
+            const icon = L.divIcon({
+              className: '',
+              html: `<img src="${imgUrl}" class="photo-marker" style="width:46px; height:46px;">`,
+              iconSize: [46, 46], iconAnchor: [23, 23]
+            });
 
-            if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && (lat !== 0 || lon !== 0)) {
-              const imgUrl = URL.createObjectURL(file);
-              const icon = L.divIcon({
-                className: '',
-                html: `<img src="${imgUrl}" class="photo-marker" style="width:46px; height:46px;">`,
-                iconSize: [46, 46], iconAnchor: [23, 23]
-              });
-
-              const m = L.marker([lat, lon], { icon: icon, zIndexOffset: 1400 });
-              m.bindPopup(`<div class="popup-content" style="text-align:center;"><img src="${imgUrl}" style="max-width:220px; max-height:220px; border:2px solid #fff; object-fit:contain;"><br><strong style="color:var(--p-yellow);">📸 ${file.name}</strong><br><span style="font-size:0.75rem; color:#ccc;">${dateTime}</span></div>`);
-              m.addTo(photosLayer);
-              photoBounds.push([lat, lon]);
-              addedCount++;
-            }
+            const m = L.marker([lat, lon], { icon: icon, zIndexOffset: 1400 });
+            m.bindPopup(`<div class="popup-content" style="text-align:center;"><img src="${imgUrl}" style="max-width:220px; max-height:220px; border:2px solid #fff; object-fit:contain;"><br><strong style="color:var(--p-yellow);">📸 ${file.name}</strong><br><span style="font-size:0.75rem; color:#ccc;">${dateStr}</span></div>`);
+            m.addTo(photosLayer);
+            photoBounds.push([lat, lon]);
+            addedCount++;
           }
+        } catch (err) {
+          console.warn("Exif parse skip:", file.name, err);
+        }
+      }
 
-          if (processed === files.length) {
-            if (addedCount > 0) {
-              document.getElementById('photoStatus').textContent = `🃏 ${addedCount} / ${files.length} PHOTOS MAPPED`;
-              document.getElementById('clearPhotosBtn').style.display = 'block';
-              map.fitBounds(photoBounds, { padding: [50, 50], maxZoom: 14 });
-              if (window.innerWidth <= 768) toggleSidebar(false);
-            } else {
-              document.getElementById('photoStatus').textContent = "位置情報（GPS Exif）が含まれる写真が見つかりませんでした。";
-            }
-          }
-        });
-      });
+      if (addedCount > 0) {
+        document.getElementById('photoStatus').textContent = `🃏 ${addedCount} / ${files.length} PHOTOS MAPPED`;
+        document.getElementById('clearPhotosBtn').style.display = 'block';
+        map.fitBounds(photoBounds, { padding: [50, 50], maxZoom: 14 });
+        if (window.innerWidth <= 768) toggleSidebar(false);
+      } else {
+        document.getElementById('photoStatus').innerHTML = "⚠️ 写真からGPS情報が検出されませんでした。<br>スマホで選択する際は、ギャラリーから直接選ばず<strong>「フォルダ参照（ファイルアプリ）」</strong>から元画像を選択してください。";
+      }
     });
   </script>
 </body>
